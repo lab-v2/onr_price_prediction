@@ -1,4 +1,4 @@
-date|max_route_arrival_port|max_route_departure_port|max_route_count|distinct_ship_count
+Date|max_route_arrival_port|max_route_departure_port|max_route_count|distinct_ship_count
 2021-03-24|RULED|CNXMN|1|1
 2021-12-28|INBOM|CNDLC|5|1
 2022-01-01|BEANR|NLRTM|10|38
