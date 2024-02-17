@@ -21,6 +21,21 @@ def make_output_dict(name, params, classification_report):
         "F1 (1)": classification_report["1"]["f1-score"],
     }
 
+def save_predictions_to_file(model_name, y_pred, y_true=None, file_format="npy", commodity=''):
+    if file_format == "npy":
+        # Save as NumPy binary file
+        np.save(f"results/{commodity}/pred/{model_name}_predictions.npy", y_pred)
+        if y_true is not None:
+            np.save(f"results/{commodity}/true/{model_name}_true_labels.npy", y_true)
+    elif file_format == "csv":
+        # Save as CSV for easier readability
+        df = pd.DataFrame({"Predictions": y_pred.flatten()})
+        if y_true is not None:
+            df["True Labels"] = y_true
+        df.to_csv(f"results/{commodity}/.csv/{model_name}_predictions.csv", index=False)
+    else:
+        raise ValueError("Unsupported file format. Use 'npy' or 'csv'.")
+
 
 # Transformer
 def positional_encoding(length, d_model):
@@ -177,3 +192,37 @@ def evaluate_attention_cnn(filters, kernel_size, X_train, y_train, X_test, y_tes
     y_pred = model.predict(X_test)
     output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True))
     return y_pred, output
+
+# Evaluate all models
+def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
+    output_dicts = []
+
+    # LSTM
+    for layers in [250, 200, 100, 50]:
+        y_pred, output_dict = evaluate_lstm(layers, X_train, y_train, X_test, y_test)
+        output_dicts.append(output_dict)
+        # save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test)
+
+    # CNN w/ Attention
+    for filter in [32, 64, 128, 256]:
+        for kernel in [7,5,3]:
+            y_pred, output_dict = evaluate_attention_cnn(filter, kernel, X_train, y_train, X_test, y_test)
+            output_dicts.append(output_dict)
+            # save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test)
+    # RNN 
+    for units in [200,150,100,50]:
+        y_pred, output_dict = evaluate_rnn(units, X_train, y_train, X_test, y_test)
+        output_dicts.append(output_dict)
+        # save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test)
+
+    # CNN
+    for filter in [32, 64, 128, 256]:
+        for kernel in [7,5,3]:
+            y_pred, output_dict = evaluate_cnn(filter, kernel, X_train, y_train, X_test, y_test)
+            output_dicts.append(output_dict)
+            # save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test)
+
+    output_dicts = pd.DataFrame(output_dicts)
+    output_dicts.to_csv(output_file_path)
+    return output_dicts
+    

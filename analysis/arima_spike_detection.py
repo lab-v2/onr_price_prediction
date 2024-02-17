@@ -1,13 +1,12 @@
 import models
 import utils
-from constants import TARGET_COLUMN
+import data_processing
+from constants import TARGET_COLUMN, RANDOM_STATE
 import sys
 from datetime import datetime
 from build_data import get_data
-import pandas as pd
 import pmdarima as pm
-import numpy as np
-from sklearn.preprocessing import StandardScaler
+
 from sklearn.model_selection import train_test_split
 
 # Commandline arg
@@ -48,54 +47,23 @@ FEATURE_COLUMNS = [TARGET_COLUMN, 'ARIMA_Residuals']  # Add other feature column
 X = aggregated_df[FEATURE_COLUMNS].values
 y = aggregated_df['spikes'].values
 
-# Feature scaling using StandardScaler, redoing this so we scale train / test separately to avoid leakage
-scaler = StandardScaler()
-
-X_train_raw, X_test_raw, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=50, shuffle=False)
-
-X_train_scaled = scaler.fit_transform(X_train_raw)
-X_test_scaled = scaler.fit_transform(X_test_raw)
-
 # Define the window size for creating sequences
 SPIKES_WINDOW_SIZE = 20
 
-# Function to create sequences from the scaled data
-def create_sequences(X_scaled, y, window_size):
-    X_sequences, y_sequences = [], []
-    for i in range(len(X_scaled) - window_size + 1):
-        X_sequences.append(X_scaled[i:i + window_size, :])
-        y_sequences.append(y[i + window_size - 1])
-    return np.array(X_sequences), np.array(y_sequences)
+# Prepare features and target
+FEATURE_COLUMNS = [TARGET_COLUMN, 'ARIMA_Residuals']  # Adjust as needed
+X, y = data_processing.prepare_features_and_target(aggregated_df, FEATURE_COLUMNS, 'spikes')
 
-# Create sequences for training and test data
-X_train, y_train = create_sequences(X_train_scaled, y_train, SPIKES_WINDOW_SIZE)
-X_test, y_test = create_sequences(X_test_scaled, y_test, SPIKES_WINDOW_SIZE)
+# Split data (using sklearn's train_test_split)
+X_train_raw, X_test_raw, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE, shuffle=False)
 
-output_dicts = []
+# Scale features
+X_train_scaled, X_test_scaled = data_processing.scale_features(X_train_raw, X_test_raw)
 
-# Train and test the model
+# Create sequences
+X_train, y_train = data_processing.create_sequences(X_train_scaled, y_train, SPIKES_WINDOW_SIZE)
+X_test, y_test = data_processing.create_sequences(X_test_scaled, y_test, SPIKES_WINDOW_SIZE)
 
-#LSTM Model
-for layers in [250, 200, 100, 50]:
-    y_pred, output_dict = models.evaluate_lstm(layers, X_train, y_train, X_test, y_test)
-    output_dicts.append(output_dict)
-    
-#CNN w Attention Model
-for filter in [32, 64, 128, 256]:
-    for kernel in [7,5,3]:
-        y_pred, output_dict = models.evaluate_attention_cnn(filter, kernel, X_train, y_train, X_test, y_test)
-        output_dicts.append(output_dict)
-        
-#RNN Model
-for units in [200,150,100,50]:
-    y_pred, output_dict = models.evaluate_rnn(units,  X_train, y_train, X_test, y_test)
-    output_dicts.append(output_dict)
-    
-#CNN Model
-for filter in [32, 64, 128, 256]:
-    for kernel in [7,5,3]:
-        y_pred, output_dict = models.evaluate_cnn(filter, kernel,  X_train, y_train, X_test, y_test)
-        output_dicts.append(output_dict)
-        
-output_dicts = pd.DataFrame(output_dicts)
-output_dicts.to_csv("results.csv")
+# Evaluate all models & save in file
+output_file_path = f'{COMMODITY}/results.csv'
+models.evaluate_all(X_train, y_train, X_test, y_test, output_file_path)
