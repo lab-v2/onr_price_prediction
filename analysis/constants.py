@@ -4,6 +4,7 @@ QUANTITY_COLUMN = 'Std. Quantity (KG)'
 UNIT_RATE_COLUMN = 'Std. Unit Rate ($/KG)'
 BRENT_OIL_COLUMN = 'Brent Oil Value'
 WTI_OIL_COLUMN = 'WTI Oil Value'
+GROSS_WEIGHT_COLUMN = 'Gross Weight'
 SHIP_COUNT_COLUMN = 'ship_count'
 PORT_COUNT_COLUMN = 'popular_port_count'
 
