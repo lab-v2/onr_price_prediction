@@ -232,28 +232,40 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
 
     # LSTM
     for layers in [250, 200, 100, 50]:
-        y_pred, output_dict = evaluate_lstm(layers, X_train, y_train, X_test, y_test)
-        output_dicts.append(output_dict)
-        # save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test)
+        try: 
+            y_pred, output_dict = evaluate_lstm(layers, X_train, y_train, X_test, y_test)
+            output_dicts.append(output_dict)
+            # save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test)
+        except Exception as e:
+            print(f"Failed to evaluate LSTM with {layers} layers: {e}")
 
     # CNN w/ Attention
     for filter in [32, 64, 128, 256]:
         for kernel in [7,5,3]:
-            y_pred, output_dict = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_test, y_test) # Switch this later?
-            output_dicts.append(output_dict)
-            # save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test)
+            try:
+                y_pred, output_dict = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_test, y_test) # Switch this later?
+                output_dicts.append(output_dict)
+                # save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test)
+            except Exception as e:
+                print(f"Failed to evaluate CNN with Attention {filter} filters and {kernel} kernel size: {e}")
     # RNN 
     for units in [200,150,100,50]:
-        y_pred, output_dict = evaluate_rnn(units, X_train, y_train, X_test, y_test)
-        output_dicts.append(output_dict)
-        # save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test)
+        try: 
+            y_pred, output_dict = evaluate_rnn(units, X_train, y_train, X_test, y_test)
+            output_dicts.append(output_dict)
+            # save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test)
+        except Exception as e:
+            print(f"Failed to evaluate RNN with {units} units: {e}")
 
     # CNN
     for filter in [32, 64, 128, 256]:
         for kernel in [7,5,3]:
-            y_pred, output_dict = evaluate_cnn(filter, kernel, X_train, y_train, X_test, y_test)
-            output_dicts.append(output_dict)
-            # save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test)
+            try:
+                y_pred, output_dict = evaluate_cnn(filter, kernel, X_train, y_train, X_test, y_test)
+                output_dicts.append(output_dict)
+                # save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test)
+            except Exception as e:
+                print(f"Failed to evaluate CNN with {filter} filters and {kernel} kernel size: {e}")
 
     output_dicts = pd.DataFrame(output_dicts)
     output_dicts.to_csv(output_file_path)
