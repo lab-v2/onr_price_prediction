@@ -193,6 +193,39 @@ def evaluate_attention_cnn(filters, kernel_size, X_train, y_train, X_test, y_tes
     output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True))
     return y_pred, output
 
+# Trying out a different implementation of ACNN
+def create_acnn_model2(input_shape, num_classes, filters, kernel_size):
+    inputs = Input(shape=input_shape)
+
+    # CNN layers
+    conv1 = Conv1D(filters, kernel_size=kernel_size, activation='relu', padding='same')(inputs)
+    pool1 = MaxPooling1D(pool_size=2, padding='same')(conv1)
+
+    # Attention mechanism applied directly on the pooled output, preserving the temporal dimension
+    attention_output = Attention()([pool1, pool1])
+
+    # Flatten for fully connected layers
+    flatten = Flatten()(attention_output)
+
+    # Fully connected layers
+    dense1 = Dense(128, activation='relu')(flatten)
+    dropout = Dropout(0.5)(dense1)
+    outputs = Dense(num_classes, activation='softmax')(dropout)
+
+    model = Model(inputs=inputs, outputs=outputs)
+
+    return model
+
+def evaluate_attention_cnn2(filters, kernel_size, X_train, y_train, X_test, y_test):
+    model = create_acnn_model(X_train.shape[1:], 2, filters, kernel_size)
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    model.fit(X_train, y_train, epochs=100, batch_size=filters, verbose=False)
+    y_pred = model.predict(X_test)
+    output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True))
+    return y_pred, output
+
+
+
 # Evaluate all models
 def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
     output_dicts = []
@@ -206,7 +239,7 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
     # CNN w/ Attention
     for filter in [32, 64, 128, 256]:
         for kernel in [7,5,3]:
-            y_pred, output_dict = evaluate_attention_cnn(filter, kernel, X_train, y_train, X_test, y_test)
+            y_pred, output_dict = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_test, y_test) # Switch this later?
             output_dicts.append(output_dict)
             # save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test)
     # RNN 
