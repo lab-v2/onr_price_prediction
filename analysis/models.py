@@ -6,6 +6,7 @@ from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Dropou
 from tensorflow.keras.layers import Attention, Reshape
 from tensorflow.keras.models import Model, Sequential
 from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+import os
 
 
 def make_output_dict(name, params, classification_report):
@@ -224,10 +225,30 @@ def evaluate_attention_cnn2(filters, kernel_size, X_train, y_train, X_test, y_te
     output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True))
     return y_pred, output
 
+# Save model predictions
+def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
+    try:
+        os.makedirs(directory_path, exist_ok=True)
 
+        # Flatten the arrays to ensure they are 1-dimensional
+        y_pred = y_pred.flatten()
+        y_test = y_test.flatten()
+
+        csv_filename = f"{directory_path}/{model_name}_predictions.csv"
+        npy_filename = f"{directory_path}/{model_name}_predictions.npy"
+    
+        predictions_df = pd.DataFrame({'Predicted': y_pred, 'True': y_test})
+        predictions_df.to_csv(csv_filename, index=False)
+
+        np.save(npy_filename, y_pred)
+
+        print(f"Predictions saved to CSV file: {csv_filename}")
+        print(f"Predictions saved to NPY file: {npy_filename}")
+    except Exception as e:
+        print(f" 2. Failed to save predictions for {model_name}: {e}")
 
 # Evaluate all models
-def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
+def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_path):
     output_dicts = []
 
     # LSTM
@@ -235,7 +256,7 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
         try: 
             y_pred, output_dict = evaluate_lstm(layers, X_train, y_train, X_test, y_test)
             output_dicts.append(output_dict)
-            # save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test)
+            save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test, pred_file_path)
         except Exception as e:
             print(f"Failed to evaluate LSTM with {layers} layers: {e}")
 
@@ -245,7 +266,7 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
             try:
                 y_pred, output_dict = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_test, y_test) # Switch this later?
                 output_dicts.append(output_dict)
-                # save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test)
+                save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
             except Exception as e:
                 print(f"Failed to evaluate CNN with Attention {filter} filters and {kernel} kernel size: {e}")
     # RNN 
@@ -253,7 +274,7 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
         try: 
             y_pred, output_dict = evaluate_rnn(units, X_train, y_train, X_test, y_test)
             output_dicts.append(output_dict)
-            # save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test)
+            save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test, pred_file_path)
         except Exception as e:
             print(f"Failed to evaluate RNN with {units} units: {e}")
 
@@ -263,7 +284,7 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path):
             try:
                 y_pred, output_dict = evaluate_cnn(filter, kernel, X_train, y_train, X_test, y_test)
                 output_dicts.append(output_dict)
-                # save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test)
+                save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, pred_file_path)
             except Exception as e:
                 print(f"Failed to evaluate CNN with {filter} filters and {kernel} kernel size: {e}")
 
