@@ -225,27 +225,36 @@ def evaluate_attention_cnn2(filters, kernel_size, X_train, y_train, X_test, y_te
     output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True))
     return y_pred, output
 
-# Save model predictions
 def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
     try:
         os.makedirs(directory_path, exist_ok=True)
 
-        # Flatten the arrays to ensure they are 1-dimensional
-        y_pred = y_pred.flatten()
-        y_test = y_test.flatten()
+        # Check and adjust shapes. Flatten if 2D with one column, otherwise respect multi-dimensionality for multi-class
+        if y_pred.ndim > 1 and y_pred.shape[1] == 1:
+            y_pred = y_pred.flatten()
+        if y_test.ndim > 1 and y_test.shape[1] == 1:
+            y_test = y_test.flatten()
+
+        # Handling for multi-class classification where y_pred is not 1-dimensional
+        if y_pred.ndim > 1:
+            # For multi-dimensional y_pred, create a DataFrame with a column for each class/label
+            predictions_df = pd.DataFrame(y_pred, columns=[f'Predicted_{i}' for i in range(y_pred.shape[1])])
+            predictions_df['True'] = y_test  # Assuming y_test is correctly shaped or is a single class label
+        else:
+            # For 1-dimensional y_pred, proceed as before
+            predictions_df = pd.DataFrame({'Predicted': y_pred, 'True': y_test})
 
         csv_filename = f"{directory_path}/{model_name}_predictions.csv"
-        npy_filename = f"{directory_path}/{model_name}_predictions.npy"
-    
-        predictions_df = pd.DataFrame({'Predicted': y_pred, 'True': y_test})
         predictions_df.to_csv(csv_filename, index=False)
 
+        # Optionally, save y_pred with original shape to NPY if it's crucial to preserve multi-dimensionality
+        npy_filename = f"{directory_path}/{model_name}_predictions.npy"
         np.save(npy_filename, y_pred)
 
         print(f"Predictions saved to CSV file: {csv_filename}")
         print(f"Predictions saved to NPY file: {npy_filename}")
     except Exception as e:
-        print(f" 2. Failed to save predictions for {model_name}: {e}")
+        print(f"2. Failed to save predictions for {model_name}: {e}")
 
 # Evaluate all models
 def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_path):
@@ -284,7 +293,7 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_p
             try:
                 y_pred, output_dict = evaluate_cnn(filter, kernel, X_train, y_train, X_test, y_test)
                 output_dicts.append(output_dict)
-                save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, pred_file_path)
+                save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
             except Exception as e:
                 print(f"Failed to evaluate CNN with {filter} filters and {kernel} kernel size: {e}")
 
