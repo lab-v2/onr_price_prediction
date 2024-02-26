@@ -1,5 +1,5 @@
-from constants import VALUE_COLUMN, QUANTITY_COLUMN, UNIT_RATE_COLUMN, SPIKES_WINDOW_SIZE, SPIKES_THRESHOLD
-
+from constants import VALUE_COLUMN, QUANTITY_COLUMN, UNIT_RATE_COLUMN, SPIKES_THRESHOLD
+import matplotlib.pyplot as plt
 # Only keep rows where we have usable quantity units (kg, ton) and standardizing it.
 def convert_to_kg(df, quantity_col='Std. Quantity', unit_col='Std. Unit'):
     converstion_factors = {
@@ -48,10 +48,29 @@ def convert_to_pound(df, quantity_col='Std. Quantity', unit_col='Std. Unit'):
 
     return df_filtered
 
-def detect_spikes(df, column):
+def detect_spikes(df, column, window_size):
     ## Detecting spikes
-    moving_avg = df[column].rolling(window=SPIKES_WINDOW_SIZE).mean()
-    std_dev = df[column].rolling(window=SPIKES_WINDOW_SIZE).std()
+    print("Detecting spikes...",window_size)
+    moving_avg = df[column].rolling(window=window_size).mean()
+    std_dev = df[column].rolling(window=window_size).std()
 
     # Set a threshold to identify spikes
     return (abs(df[column] - moving_avg) > SPIKES_THRESHOLD * std_dev).astype(int)
+
+def plot_prices(df, title):
+    plt.figure(figsize=(10, 6))  # Adjust the figure size as needed
+    plt.plot(df.index, df['Price'], label='Price', color='blue')
+
+    # Highlighting spikes
+    spike_indices = df[df['spikes'] == 1].index
+    spike_prices = df.loc[spike_indices, 'Price']
+    plt.scatter(spike_indices, spike_prices, color='red', marker='^', label='Spikes')
+
+    # Adding labels and title
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.title('Price Data with Spikes')
+    plt.legend()
+
+    # Display the plot
+    plt.show()
