@@ -14,7 +14,7 @@ from constants import (
     AIS_POPULAR_FILE_PATH
 )
 
-def get_data(volza_file_path, price_file_path, ais_file_path, petrol_file_path, window_size,center):
+def get_data(volza_file_path, price_file_path, window_size,center):
     print("Building data...",)
     # Formatting the date and price for Volza data
     volza_pd = pd.read_csv(volza_file_path)
@@ -28,7 +28,7 @@ def get_data(volza_file_path, price_file_path, ais_file_path, petrol_file_path, 
     volza_pd = utils.convert_to_kg(volza_pd)
 
     # Preprocessing the AIS data
-    ais_popular_pd = pd.read_csv(ais_file_path)
+    ais_popular_pd = pd.read_csv(AIS_POPULAR_FILE_PATH)
     ais_popular_pd["Date"] = pd.to_datetime(ais_popular_pd["Date"])
 
     # Preprocessing the price data
@@ -53,7 +53,7 @@ def get_data(volza_file_path, price_file_path, ais_file_path, petrol_file_path, 
     date_wise_volza = date_wise_volza.join(avg_price_volza, how="left")
 
     # Petroleum data prep
-    petrol_df = pd.read_csv(petrol_file_path, delimiter=";", on_bad_lines="warn")
+    petrol_df = pd.read_csv(PETROL_FILE_PATH, delimiter=";", on_bad_lines="warn")
     petrol_df["Date"] = pd.to_datetime(petrol_df["Date"])
 
     # Split based on types of oil

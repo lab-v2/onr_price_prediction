@@ -37,8 +37,8 @@ args = parser.parse_args()
 COMMODITY = args.commodity
 VOLZA_FILE_PATH = f"volza/{COMMODITY}/{COMMODITY}.csv"
 PRICE_FILE_PATH = f"volza/{COMMODITY}/{COMMODITY}_prices.csv"
-PETROL_FILE_PATH = 'volza/petroleum/petrol_crude_oil_spot_price.csv'
-AIS_POPULAR_FILE_PATH = f'ais/ais_ml_features.csv' 
+# PETROL_FILE_PATH = 'volza/petroleum/petrol_crude_oil_spot_price.csv'
+# AIS_POPULAR_FILE_PATH = f'ais/ais_ml_features.csv' 
 
 feature_map = {
     'VOLZA': [VALUE_COLUMN, UNIT_RATE_COLUMN, QUANTITY_COLUMN, GROSS_WEIGHT_COLUMN],
@@ -58,7 +58,7 @@ NAME_SPACE = '_'.join(args.features)
 print(NAME_SPACE)
 for window_size in SPIKE_WINDOW_SIZES:
     SPIKES_WINDOW_SIZE = window_size
-    aggregated_df = get_data(VOLZA_FILE_PATH, PRICE_FILE_PATH, AIS_POPULAR_FILE_PATH, PETROL_FILE_PATH, SPIKES_WINDOW_SIZE, args.centre)
+    aggregated_df = get_data(VOLZA_FILE_PATH, PRICE_FILE_PATH, SPIKES_WINDOW_SIZE, args.centre)
     X, y = data_processing.prepare_features_and_target(aggregated_df, features, 'spikes')
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     X_train, X_test = data_processing.scale_features(X_train, X_test)
