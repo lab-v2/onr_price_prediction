@@ -35,8 +35,8 @@ parser.add_argument("-c", "--centre", action="store_true")  # option that takes 
 args = parser.parse_args()
 # print(args)
 COMMODITY = args.commodity
-VOLZA_FILE_PATH = f"volza/{COMMODITY}/{COMMODITY}.csv"
-PRICE_FILE_PATH = f"volza/{COMMODITY}/{COMMODITY}_prices.csv"
+VOLZA_FILE_PATH = f"../volza/{COMMODITY}/{COMMODITY}.csv"
+PRICE_FILE_PATH = f"../volza/{COMMODITY}/{COMMODITY}_prices.csv"
 # PETROL_FILE_PATH = 'volza/petroleum/petrol_crude_oil_spot_price.csv'
 # AIS_POPULAR_FILE_PATH = f'ais/ais_ml_features.csv' 
 
