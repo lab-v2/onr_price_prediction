@@ -13,7 +13,8 @@ from constants import (
     AIS_POPULAR_FILE_PATH
 )
 
-def get_data(volza_file_path, price_file_path):
+def get_data(volza_file_path, price_file_path,window_size):
+    print("Building data...",)
     # Formatting the date and price for Volza data
     volza_pd = pd.read_csv(volza_file_path)
     volza_pd = volza_pd[
@@ -76,6 +77,6 @@ def get_data(volza_file_path, price_file_path):
     ).fillna(method=FILL_METHOD)
 
     # Add spikes column
-    aggregated_df["spikes"] = utils.detect_spikes(aggregated_df, "Price")
+    aggregated_df["spikes"] = utils.detect_spikes(aggregated_df, "Price", window_size=window_size)
     
     return aggregated_df
