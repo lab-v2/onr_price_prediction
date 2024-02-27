@@ -48,11 +48,11 @@ def convert_to_pound(df, quantity_col='Std. Quantity', unit_col='Std. Unit'):
 
     return df_filtered
 
-def detect_spikes(df, column, window_size):
+def detect_spikes(df, column, window_size, center=True):
     ## Detecting spikes
     print("Detecting spikes...",window_size)
-    moving_avg = df[column].rolling(window=window_size, center=True).mean()
-    std_dev = df[column].rolling(window=window_size, center=True).std()
+    moving_avg = df[column].rolling(window=window_size, center=center).mean()
+    std_dev = df[column].rolling(window=window_size, center=center).std()
 
     # Set a threshold to identify spikes
     return (abs(df[column] - moving_avg) > SPIKES_THRESHOLD * std_dev).astype(int)
