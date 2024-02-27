@@ -7,6 +7,7 @@ WTI_OIL_COLUMN = 'WTI Oil Value'
 GROSS_WEIGHT_COLUMN = 'Gross Weight'
 SHIP_COUNT_COLUMN = 'ship_count'
 PORT_COUNT_COLUMN = 'popular_port_count'
+ARIMA_RESIDUAL_COLUMN = 'ARIMA_Residuals'
 
 VALUE_SPIKES_COLUMN = 'Value Spikes'  
 QUANTITY_SPIKES_COLUMN = 'Std. Quantity (KG) Spikes'
