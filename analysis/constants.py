@@ -25,7 +25,7 @@ TARGET_COLUMN = 'Price'
 PETROL_FILE_PATH = '../volza/petroleum/petrol_crude_oil_spot_price.csv'
 AIS_POPULAR_FILE_PATH = f'../ais/ais_ml_features.csv' 
 
-SPIKES_THRESHOLD = 1
+SPIKES_THRESHOLD = 1.5
 BIN_COUNT = 10
 FILL_METHOD = 'ffill'
 
