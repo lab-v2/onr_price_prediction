@@ -54,7 +54,7 @@ for feature in args.features:
     
 SPIKE_WINDOW_SIZES = [10, 20, 30, 40]
 results_dfs = []
-NAME_SPACE = '_'.join(args.features)
+NAME_SPACE = '_'.join(args.features) + ('_centre' if args.centre else '')
 print(NAME_SPACE)
 for window_size in SPIKE_WINDOW_SIZES:
     SPIKES_WINDOW_SIZE = window_size
