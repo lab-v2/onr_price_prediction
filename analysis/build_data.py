@@ -108,7 +108,14 @@ def get_data(volza_file_path, price_file_path, window_size,center):
 
     aggregated_df = pd.concat([train_df, test_df])
 
-    # Add spikes column
+    # Add Isolation Forest spikes column
+    # aggregated_df["spikes_if"] = utils.detect_spikes_if(aggregated_df, "Price")
+
+    # Add rolling mean spikes column
     aggregated_df["spikes"] = utils.detect_spikes(aggregated_df, "Price", window_size=window_size, center=center)
+    # aggregated_df["spikes"] = utils.detect_spikes(aggregated_df, "Price")
+
+    # aggregated_df["spikes"] = utils.detect_spikes_iqr(aggregated_df, "Price")
+
     
     return aggregated_df

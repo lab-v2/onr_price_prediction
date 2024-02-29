@@ -100,10 +100,26 @@ def evaluate_transformer(num_encoder_layers,length,d_model,X_train, y_train, X_t
 
 
 #LSTM Model
+# def evaluate_lstm(num_layers: int, X_train, y_train, X_test, y_test):
+#   # Build the LSTM model
+#   model = Sequential()
+#   model.add(LSTM(num_layers, input_shape=(X_train.shape[1], X_train.shape[2])))
+#   model.add(Dense(1, activation='sigmoid'))
+#   model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[tf.keras.metrics.AUC()])
+
+#   # Train the model
+#   model.fit(X_train, y_train, epochs=100, batch_size=32, verbose=False)
+
+#   y_pred = (model.predict(X_test) > 0.5).astype(int)
+#   output = make_output_dict(f"LSTM", f"{num_layers} layers", classification_report(y_test, y_pred, output_dict=True))
+#   return y_pred, output
+
 def evaluate_lstm(num_layers: int, X_train, y_train, X_test, y_test):
   # Build the LSTM model
   model = Sequential()
-  model.add(LSTM(num_layers, input_shape=(X_train.shape[1], X_train.shape[2])))
+  model.add(LSTM(num_layers, input_shape=(X_train.shape[1], X_train.shape[2]), activation='tanh'))
+  model.add(Dense(num_layers/2, activation='relu'))
+  model.add(Dense(num_layers/2, activation='relu'))
   model.add(Dense(1, activation='sigmoid'))
   model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[tf.keras.metrics.AUC()])
 
@@ -114,11 +130,11 @@ def evaluate_lstm(num_layers: int, X_train, y_train, X_test, y_test):
   output = make_output_dict(f"LSTM", f"{num_layers} layers", classification_report(y_test, y_pred, output_dict=True))
   return y_pred, output
 
-
 def evaluate_rnn(num_units: int, X_train, y_train, X_test, y_test):
     # Build the RNN model
     model = Sequential()
     model.add(SimpleRNN(num_units, input_shape=(X_train.shape[1], X_train.shape[2]), activation='relu'))
+    model.add(Dense(num_units/2, activation='relu'))
     model.add(Dense(1, activation='sigmoid'))
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[tf.keras.metrics.AUC()])
 
@@ -140,7 +156,7 @@ def evaluate_cnn(num_filters: int, kernel_size: int, X_train, y_train, X_test, y
     model.add(Conv1D(filters=num_filters, kernel_size=kernel_size, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Flatten())
-    model.add(Dense(50, activation='relu'))
+    model.add(Dense(num_filters/2, activation='relu'))
     model.add(Dense(1, activation='sigmoid'))
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[tf.keras.metrics.AUC()])
 
@@ -154,7 +170,6 @@ def evaluate_cnn(num_filters: int, kernel_size: int, X_train, y_train, X_test, y
 
     # Generate classification report
     return y_pred, output
-
 
 # Attention CNN
 def create_acnn_model(input_shape, num_classes, filters, kernel_size):
@@ -201,6 +216,7 @@ def create_acnn_model2(input_shape, num_classes, filters, kernel_size):
     # CNN layers
     conv1 = Conv1D(filters, kernel_size=kernel_size, activation='relu', padding='same')(inputs)
     pool1 = MaxPooling1D(pool_size=2, padding='same')(conv1)
+    conv1 = Conv1D(filters*2, kernel_size=kernel_size, activation='relu', padding='same')(inputs)
 
     # Attention mechanism applied directly on the pooled output, preserving the temporal dimension
     attention_output = Attention()([pool1, pool1])
@@ -261,7 +277,7 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_p
     output_dicts = []
 
     # LSTM
-    for layers in [250, 200, 100, 50]:
+    for layers in [256, 128, 64, 32]:
         try: 
             y_pred, output_dict = evaluate_lstm(layers, X_train, y_train, X_test, y_test)
             output_dicts.append(output_dict)
@@ -279,7 +295,7 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_p
             except Exception as e:
                 print(f"Failed to evaluate CNN with Attention {filter} filters and {kernel} kernel size: {e}")
     # RNN 
-    for units in [200,150,100,50]:
+    for units in [256, 128, 64, 32]:
         try: 
             y_pred, output_dict = evaluate_rnn(units, X_train, y_train, X_test, y_test)
             output_dicts.append(output_dict)
