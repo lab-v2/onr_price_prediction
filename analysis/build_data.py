@@ -1,6 +1,7 @@
 import utils
 import pandas as pd
 from datetime import datetime
+import pmdarima as pm
 from constants import (
     VALUE_COLUMN,
     QUANTITY_COLUMN,
@@ -13,7 +14,7 @@ from constants import (
     AIS_POPULAR_FILE_PATH
 )
 
-def get_data(volza_file_path, price_file_path,window_size):
+def get_data(volza_file_path, price_file_path, window_size,center):
     print("Building data...",)
     # Formatting the date and price for Volza data
     volza_pd = pd.read_csv(volza_file_path)
@@ -76,7 +77,38 @@ def get_data(volza_file_path, price_file_path,window_size):
         wti_df[[DATE_COLUMN, WTI_OIL_COLUMN]], on="Date", how="left"
     ).fillna(method=FILL_METHOD)
 
+    # Clean up before passing to Arima
+    initial_row_count = aggregated_df.shape[0]
+    columns_of_interest = ['Price']  # Add other columns as necessary
+    aggregated_df = aggregated_df.dropna(subset=columns_of_interest)
+    rows_dropped = initial_row_count - aggregated_df.shape[0]
+    print(f"Rows dropped due to NaN values: {rows_dropped}")
+
+    train_size = int(len(aggregated_df) * 0.8)
+    train_df = aggregated_df[:train_size]
+    test_df = aggregated_df[train_size:]
+
+    # Fit an Auto ARIMA model to the 'Price' series of the training data
+    model = pm.auto_arima(train_df['Price'], seasonal=True, m=12, suppress_warnings=True, stepwise=True, error_action='ignore')
+
+    # Forecast the training series using the model (in-sample prediction) to calculate training residuals
+    train_forecast = model.predict_in_sample()
+    train_residuals = train_df['Price'] - train_forecast
+
+    # For the test set, use the model to forecast test-sample and calculate residuals
+    test_forecast = model.predict(n_periods=len(test_df))
+    test_residuals = test_df['Price'] - test_forecast
+
+    # Append residuals to the respective DataFrame as a new feature for anomaly detection
+    train_df = train_df.copy()
+    train_df['ARIMA_Residuals'] = train_residuals
+
+    test_df = test_df.copy()
+    test_df['ARIMA_Residuals'] = test_residuals
+
+    aggregated_df = pd.concat([train_df, test_df])
+
     # Add spikes column
-    aggregated_df["spikes"] = utils.detect_spikes(aggregated_df, "Price", window_size=window_size)
+    aggregated_df["spikes"] = utils.detect_spikes(aggregated_df, "Price", window_size=window_size, center=center)
     
     return aggregated_df

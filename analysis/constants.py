@@ -7,6 +7,7 @@ WTI_OIL_COLUMN = 'WTI Oil Value'
 GROSS_WEIGHT_COLUMN = 'Gross Weight'
 SHIP_COUNT_COLUMN = 'ship_count'
 PORT_COUNT_COLUMN = 'popular_port_count'
+ARIMA_RESIDUAL_COLUMN = 'ARIMA_Residuals'
 
 VALUE_SPIKES_COLUMN = 'Value Spikes'  
 QUANTITY_SPIKES_COLUMN = 'Std. Quantity (KG) Spikes'
@@ -24,7 +25,7 @@ TARGET_COLUMN = 'Price'
 PETROL_FILE_PATH = '../volza/petroleum/petrol_crude_oil_spot_price.csv'
 AIS_POPULAR_FILE_PATH = f'../ais/ais_ml_features.csv' 
 
-SPIKES_THRESHOLD = 1
+SPIKES_THRESHOLD = 1.5
 BIN_COUNT = 10
 FILL_METHOD = 'ffill'
 
