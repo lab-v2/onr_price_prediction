@@ -9,7 +9,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, classification_rep
 import os
 
 
-def make_output_dict(name, params, classification_report):
+def make_output_dict(name, params, classification_report, prior):
     return {
         "Name": name,
         "Params": params,
@@ -20,7 +20,14 @@ def make_output_dict(name, params, classification_report):
         "Precision (1)": classification_report["1"]["precision"],
         "Recall (1)": classification_report["1"]["recall"],
         "F1 (1)": classification_report["1"]["f1-score"],
+        "Prior": f"{prior:.2f}"
     }
+
+def prior(y_test):
+    total_spikes_in_test = np.sum(y_test == 1)
+    total_data_points_in_test = y_test.shape[0]
+    spike_percentage_in_test = (total_spikes_in_test / total_data_points_in_test) 
+    return spike_percentage_in_test
 
 def save_predictions_to_file(model_name, y_pred, y_true=None, file_format="npy", commodity=''):
     if file_format == "npy":
@@ -68,9 +75,6 @@ def transformer_encoder(inputs, num_heads, ff_dim, dropout=0.1):
     ff_output = Dropout(dropout)(ff_output)
     return LayerNormalization(epsilon=1e-6)(attention_output + ff_output)
 
-# Model configuration
-# length = SPIKES_WINDOW_SIZE  
-# d_model = len(FEATURE_COLUMNS) 
 
 def build_transformer(num_encoder_layers, length, d_model):
     inputs = Input(shape=(length, d_model))
@@ -117,7 +121,7 @@ def evaluate_transformer(num_encoder_layers,length,d_model,X_train, y_train, X_t
 def evaluate_lstm(num_layers: int, X_train, y_train, X_test, y_test):
   # Build the LSTM model
   model = Sequential()
-  model.add(LSTM(num_layers, input_shape=(X_train.shape[1], X_train.shape[2]), activation='tanh'))
+  model.add(LSTM(num_layers, input_shape=(X_train.shape[1], X_train.shape[2]), activation='relu'))
   model.add(Dense(num_layers/2, activation='relu'))
   model.add(Dense(num_layers/2, activation='relu'))
   model.add(Dense(1, activation='sigmoid'))
@@ -127,7 +131,7 @@ def evaluate_lstm(num_layers: int, X_train, y_train, X_test, y_test):
   model.fit(X_train, y_train, epochs=100, batch_size=32, verbose=False)
 
   y_pred = (model.predict(X_test) > 0.5).astype(int)
-  output = make_output_dict(f"LSTM", f"{num_layers} layers", classification_report(y_test, y_pred, output_dict=True))
+  output = make_output_dict(f"LSTM", f"{num_layers} layers", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
   return y_pred, output
 
 def evaluate_rnn(num_units: int, X_train, y_train, X_test, y_test):
@@ -144,7 +148,7 @@ def evaluate_rnn(num_units: int, X_train, y_train, X_test, y_test):
     # Predictions
     y_pred = (model.predict(X_test) > 0.5).astype(int)
 
-    output = make_output_dict("RNN", f"{num_units} units", classification_report(y_test, y_pred, output_dict=True))
+    output = make_output_dict("RNN", f"{num_units} units", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
 
     # Generate classification report
     return y_pred, output
@@ -166,7 +170,7 @@ def evaluate_cnn(num_filters: int, kernel_size: int, X_train, y_train, X_test, y
     # Predictions
     y_pred = (model.predict(X_test) > 0.5).astype(int)
 
-    output = make_output_dict("CNN", f"{num_filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred, output_dict=True))
+    output = make_output_dict("CNN", f"{num_filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
 
     # Generate classification report
     return y_pred, output
@@ -206,7 +210,7 @@ def evaluate_attention_cnn(filters, kernel_size, X_train, y_train, X_test, y_tes
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     model.fit(X_train, y_train, epochs=100, batch_size=filters, verbose=False)
     y_pred = model.predict(X_test)
-    output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True))
+    output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True), prior(y_test))
     return y_pred, output
 
 # Trying out a different implementation of ACNN
@@ -238,7 +242,7 @@ def evaluate_attention_cnn2(filters, kernel_size, X_train, y_train, X_test, y_te
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     model.fit(X_train, y_train, epochs=100, batch_size=filters, verbose=False)
     y_pred = model.predict(X_test)
-    output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True))
+    output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True), prior(y_test))
     return y_pred, output
 
 def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
