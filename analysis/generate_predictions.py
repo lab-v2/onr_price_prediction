@@ -63,7 +63,7 @@ print(NAME_SPACE)
 for window_size in SPIKE_WINDOW_SIZES:
     SPIKES_WINDOW_SIZE = window_size
     aggregated_df = get_data(VOLZA_FILE_PATH, PRICE_FILE_PATH, SPIKES_WINDOW_SIZE, args.centre)
-    aggregated_df['spikes_if'] = utils.detect_spikes_if(aggregated_df, [TARGET_COLUMN] + VOLZA_COLUMNS, contamination=0.05)
+    aggregated_df['spikes_if'] = utils.detect_spikes_if(aggregated_df, [TARGET_COLUMN], contamination=0.1)
 
     X, y = data_processing.prepare_features_and_target(aggregated_df, features, 'spikes_if')
 
