@@ -11,6 +11,7 @@ from constants import (
     FILL_METHOD,
     TARGET_COLUMN,
     ARIMA_RESIDUAL_COLUMN,
+    VOLZA_COLUMNS,
     RANDOM_STATE
 )
 import pandas as pd
@@ -62,7 +63,10 @@ print(NAME_SPACE)
 for window_size in SPIKE_WINDOW_SIZES:
     SPIKES_WINDOW_SIZE = window_size
     aggregated_df = get_data(VOLZA_FILE_PATH, PRICE_FILE_PATH, SPIKES_WINDOW_SIZE, args.centre)
-    X, y = data_processing.prepare_features_and_target(aggregated_df, features, 'spikes')
+    aggregated_df['spikes_if'] = utils.detect_spikes_if(aggregated_df, [TARGET_COLUMN] + VOLZA_COLUMNS, contamination=0.05)
+
+    X, y = data_processing.prepare_features_and_target(aggregated_df, features, 'spikes_if')
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, shuffle=False)
     X_train, y_train = RandomOverSampler(random_state=RANDOM_STATE).fit_resample(X_train, y_train)
     X_train, X_test = data_processing.scale_features(X_train, X_test)
