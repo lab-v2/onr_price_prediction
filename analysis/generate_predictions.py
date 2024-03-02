@@ -56,7 +56,7 @@ features = []
 for feature in args.features:
     features.extend(feature_map[feature])
     
-SPIKE_WINDOW_SIZES = [10, 20, 30, 40]
+SPIKE_WINDOW_SIZES = [10, 20, 30, 40, 60, 80]
 results_dfs = []
 NAME_SPACE = '_'.join(args.features) + ('_centre' if args.centre else '')
 print(NAME_SPACE)

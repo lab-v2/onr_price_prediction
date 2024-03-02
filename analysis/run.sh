@@ -1,17 +1,17 @@
 #!/bin/bash
 
-python generate_predictions.py copper -f VOLZA -c    &   
-# python generate_predictions.py copper -f VOLZA &   
-python generate_predictions.py copper -f OIL -c    &   
-# python generate_predictions.py copper -f OIL &   
-python generate_predictions.py copper -f PRICE -c &
-# python generate_predictions.py copper -f PRICE &
-python generate_predictions.py copper -f OIL PRICE -c    & 
-# python generate_predictions.py copper -f OIL PRICE    &
-python generate_predictions.py copper -f VOLZA PRICE -c    & 
-# python generate_predictions.py copper -f VOLZA PRICE    &
-python generate_predictions.py copper -f ARIMA PRICE -c    & 
-# python generate_predictions.py copper -f ARIMA PRICE    & 
+python generate_predictions.py magnesium -f VOLZA -c    &   
+# python generate_predictions.py magnesium -f VOLZA &   
+python generate_predictions.py magnesium -f OIL -c    &   
+# python generate_predictions.py magnesium -f OIL &   
+python generate_predictions.py magnesium -f PRICE -c &
+# python generate_predictions.py magnesium -f PRICE &
+python generate_predictions.py magnesium -f OIL PRICE -c    & 
+# python generate_predictions.py magnesium -f OIL PRICE    &
+python generate_predictions.py magnesium -f VOLZA PRICE -c    & 
+# python generate_predictions.py magnesium -f VOLZA PRICE    &
+python generate_predictions.py magnesium -f ARIMA PRICE -c    & 
+# python generate_predictions.py magnesium -f ARIMA PRICE    & 
 
 
 # Wait for all background jobs to finish
