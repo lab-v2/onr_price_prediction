@@ -2,6 +2,7 @@ from constants import VALUE_COLUMN, QUANTITY_COLUMN, UNIT_RATE_COLUMN, SPIKES_TH
 import matplotlib.pyplot as plt
 from sklearn.ensemble import IsolationForest
 import pandas as pd
+import numpy as np
 
 # Only keep rows where we have usable quantity units (kg, ton) and standardizing it.
 def convert_to_kg(df, quantity_col='Std. Quantity', unit_col='Std. Unit'):
@@ -59,6 +60,22 @@ def detect_spikes(df, column, window_size, center=True):
 
     # Set a threshold to identify spikes
     return (abs(df[column] - moving_avg) > SPIKES_THRESHOLD * std_dev).astype(int)
+
+def detect_spikes_new(df, column, window_size, center=False):
+    mean = df[column].rolling(window=window_size, center=center).mean()
+    std = df[column].rolling(window=window_size, center=center).std()
+    spikes = np.zeros(len(df))
+    
+    for i in range(0, len(df)):
+        # Mean = mean(a1,a2,a3 …an-1)
+        window_mean = df[column][:i].mean()
+        # Std = std(a1,a2,a3 …an-1)
+        window_std = df[column][:i].std()
+        # f (an – mean) > threshold * std.     spike
+        if abs(df[column].iloc[i] - window_mean > SPIKES_THRESHOLD * window_std):
+            spikes[i] = 1
+    return spikes
+    
 
 def detect_spikes_iqr(df, column):
     Q1 = df[column].quantile(0.25)

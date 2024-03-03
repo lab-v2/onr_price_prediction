@@ -7,11 +7,12 @@ def prepare_features_and_target(df, feature_columns, target_column):
     return X, y
 
 # Feature scaling using StandardScaler, redoing this so we scale train / test separately to avoid leakage
-def scale_features(X_train, X_test):
+def scale_features(X_train, X_test, X_val):
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    return X_train_scaled, X_test_scaled
+    X_val_scaled = scaler.fit_transform(X_val)
+    return X_train_scaled, X_test_scaled, X_val_scaled
 
 # Function to create sequences from the scaled data
 def create_sequences(X_scaled, y, window_size):
@@ -20,3 +21,4 @@ def create_sequences(X_scaled, y, window_size):
         X_sequences.append(X_scaled[i:i + window_size, :])
         y_sequences.append(y[i + window_size - 1])
     return np.array(X_sequences), np.array(y_sequences)
+
