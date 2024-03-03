@@ -425,8 +425,8 @@ def get_model_from_descriptor(descriptor, input_shape):
         model.add(Dense(1, activation='sigmoid'))
 
     # CNN with Attention Model
-    elif "CNNA" in descriptor:
-        num_filters, kernel_size = map(int, re.search(r"CNNA_(\d+)_filters_(\d+)_kernels", descriptor).groups())
+    elif "CNN_Attention" in descriptor:
+        num_filters, kernel_size = map(int, re.search(r"CNN_Attention_(\d+)_filters_(\d+)_kernels", descriptor).groups())
         model = create_acnn_model2(input_shape, 1, num_filters, kernel_size)
     
     else:
