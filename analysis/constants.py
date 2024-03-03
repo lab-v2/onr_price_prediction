@@ -23,7 +23,7 @@ PORT_COUNT_SPIKES_COLUMN = 'Port Count Spikes'
 ORIGIN_COUNTRY_COLUMN = 'Country of Origin'
 DEST_COUNTRY_COLUMN = 'Country of Destination'
 
-TARGET_COLUMN = 'Price'
+TARGET_COLUMN = ['Price']
 
 PETROL_FILE_PATH = '../volza/petroleum/petrol_crude_oil_spot_price.csv'
 AIS_POPULAR_FILE_PATH = f'../ais/ais_ml_features.csv' 

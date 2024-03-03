@@ -62,19 +62,25 @@ def detect_spikes(df, column, window_size, center=True):
     return (abs(df[column] - moving_avg) > SPIKES_THRESHOLD * std_dev).astype(int)
 
 def detect_spikes_new(df, column, window_size, center=False):
-    mean = df[column].rolling(window=window_size, center=center).mean()
-    std = df[column].rolling(window=window_size, center=center).std()
-    spikes = np.zeros(len(df))
+    spikes = np.zeros(len(df), dtype=float)
+
+    if isinstance(column, str):
+        column = [column]
     
-    for i in range(0, len(df)):
-        # Mean = mean(a1,a2,a3 …an-1)
-        window_mean = df[column][:i].mean()
-        # Std = std(a1,a2,a3 …an-1)
-        window_std = df[column][:i].std()
-        # f (an – mean) > threshold * std.     spike
-        if abs(df[column].iloc[i] - window_mean > SPIKES_THRESHOLD * window_std):
-            spikes[i] = 1
+    for col in column:
+        # Calculate rolling mean and std deviation for the current column
+        rolling_mean = df[col].rolling(window=window_size, center=center).mean()
+        rolling_std = df[col].rolling(window=window_size, center=center).std()
+        
+        # Calculate if a spike occurred based on threshold
+        for i in range(window_size - 1, len(df)):  # Start from window_size - 1 to have a full window
+            if abs(df[col].iloc[i] - rolling_mean.iloc[i]) > SPIKES_THRESHOLD * rolling_std.iloc[i]:
+                spikes[i] = 1
+
+    spikes = spikes.astype(int)
+    
     return spikes
+
     
 
 def detect_spikes_iqr(df, column):
