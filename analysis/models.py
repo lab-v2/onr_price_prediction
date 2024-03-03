@@ -435,6 +435,7 @@ def get_model_from_descriptor(descriptor, input_shape):
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
+# Retrain the best performing model
 def retrain_best_model(saved_model_path, X_train, y_train, X_val, y_val, X_test, y_test):
     # Extract model descriptor from file path
     descriptor = saved_model_path.split('/')[-1].replace('.h5', '')
