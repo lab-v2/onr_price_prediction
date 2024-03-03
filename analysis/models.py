@@ -98,9 +98,11 @@ def evaluate_transformer(num_encoder_layers,length,d_model,X_train, y_train, X_t
     model.fit(X_train, y_train, epochs=100, batch_size=32, verbose=False)
 
     y_pred = (model.predict(X_test) > 0.5).astype(int)
+    y_pred_ori = model.predict(X_test) 
+    
     report = classification_report(y_test, y_pred, output_dict=True)
     output = make_output_dict(f"Transformer", f"{num_encoder_layers} encoder layers", report)
-    return y_pred, output
+    return y_pred, output, y_pred_ori
 
 
 #LSTM Model
@@ -131,8 +133,10 @@ def evaluate_lstm(num_layers: int, X_train, y_train, X_test, y_test):
   model.fit(X_train, y_train, epochs=100, batch_size=32, verbose=False)
 
   y_pred = (model.predict(X_test) > 0.5).astype(int)
+  y_pred_ori = model.predict(X_test)
+
   output = make_output_dict(f"LSTM", f"{num_layers} layers", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-  return y_pred, output
+  return y_pred, output, y_pred_ori
 
 def evaluate_rnn(num_units: int, X_train, y_train, X_test, y_test):
     # Build the RNN model
@@ -147,11 +151,12 @@ def evaluate_rnn(num_units: int, X_train, y_train, X_test, y_test):
 
     # Predictions
     y_pred = (model.predict(X_test) > 0.5).astype(int)
+    y_pred_ori = model.predict(X_test)
 
     output = make_output_dict("RNN", f"{num_units} units", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
 
     # Generate classification report
-    return y_pred, output
+    return y_pred, output, y_pred_ori
 
 # Build the CNN model
 def evaluate_cnn(num_filters: int, kernel_size: int, X_train, y_train, X_test, y_test):
@@ -169,11 +174,12 @@ def evaluate_cnn(num_filters: int, kernel_size: int, X_train, y_train, X_test, y
 
     # Predictions
     y_pred = (model.predict(X_test) > 0.5).astype(int)
+    y_pred_ori = model.predict(X_test)
 
     output = make_output_dict("CNN", f"{num_filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
 
     # Generate classification report
-    return y_pred, output
+    return y_pred, output, y_pred_ori
 
 # Attention CNN
 def create_acnn_model(input_shape, num_classes, filters, kernel_size):
@@ -210,8 +216,10 @@ def evaluate_attention_cnn(filters, kernel_size, X_train, y_train, X_test, y_tes
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     model.fit(X_train, y_train, epochs=100, batch_size=filters, verbose=False)
     y_pred = model.predict(X_test)
+    y_pred_ori = model.predict(X_test)
+
     output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True), prior(y_test))
-    return y_pred, output
+    return y_pred, output, y_pred_ori
 
 # Trying out a different implementation of ACNN
 def create_acnn_model2(input_shape, num_classes, filters, kernel_size):
@@ -242,8 +250,10 @@ def evaluate_attention_cnn2(filters, kernel_size, X_train, y_train, X_test, y_te
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     model.fit(X_train, y_train, epochs=100, batch_size=filters, verbose=False)
     y_pred = model.predict(X_test)
+    y_pred_ori = model.predict(X_test)
+    
     output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True), prior(y_test))
-    return y_pred, output
+    return y_pred, output, y_pred_ori
 
 def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
     try:
@@ -279,11 +289,16 @@ def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
 # Evaluate all models
 def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_path):
     output_dicts = []
+    
+    # FNN
+    rules = []
+    results = []
 
     # LSTM
     for layers in [256, 128, 64, 32]:
         try: 
-            y_pred, output_dict = evaluate_lstm(layers, X_train, y_train, X_test, y_test)
+            y_pred, output_dict, y_pred_lstm = evaluate_lstm(layers, X_train, y_train, X_test, y_test)
+            rules.append([y_pred_lstm, f"LSTM_{layers}"]) 
             output_dicts.append(output_dict)
             save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test, pred_file_path)
         except Exception as e:
@@ -293,7 +308,8 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_p
     for filter in [32, 64, 128, 256]:
         for kernel in [7,5,3]:
             try:
-                y_pred, output_dict = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_test, y_test) # Switch this later?
+                y_pred, output_dict, y_pred_cnna = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_test, y_test) # Switch this later?
+                rules.append([y_pred_cnna, f"CNNA_{filter}_{kernel}"]) 
                 output_dicts.append(output_dict)
                 save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
             except Exception as e:
@@ -301,7 +317,8 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_p
     # RNN 
     for units in [256, 128, 64, 32]:
         try: 
-            y_pred, output_dict = evaluate_rnn(units, X_train, y_train, X_test, y_test)
+            y_pred, output_dict, y_pred_rnn = evaluate_rnn(units, X_train, y_train, X_test, y_test)
+            rules.append([y_pred_rnn, f"RNN_{unit}"]) 
             output_dicts.append(output_dict)
             save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test, pred_file_path)
         except Exception as e:
@@ -311,11 +328,25 @@ def evaluate_all(X_train, y_train, X_test, y_test, output_file_path, pred_file_p
     for filter in [32, 64, 128, 256]:
         for kernel in [7,5,3]:
             try:
-                y_pred, output_dict = evaluate_cnn(filter, kernel, X_train, y_train, X_test, y_test)
+                y_pred, output_dict, y_pred_cnn = evaluate_cnn(filter, kernel, X_train, y_train, X_test, y_test)
+                rules.append([y_pred_cnn, f"CNN_{filter}_{kernel}"]) 
                 output_dicts.append(output_dict)
                 save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
             except Exception as e:
                 print(f"Failed to evaluate CNN with {filter} filters and {kernel} kernel size: {e}")
+
+    # EDCR
+    for confident in [0.8, 0.9, 0.95]:
+        for rule in rules:
+            for result in results:
+                 try:
+                     name = "Confident " + str(confident) + "Rule " + rule[1] + "for " + result[1]
+                     y_pred1 = (rule[0] > confident).astype(int)
+                     y_pred, output_dict = evaluate_edcr(name, y_pred1, result[0], y_test)
+                     output_dicts.append(output_dict)                                                                                                          
+                     save_predictions_to_file(name, y_pred, y_test, pred_file_path)
+                 except Exception as e:
+                     print(f"Failed to evaluate {name}: {e}")
 
     output_dicts = pd.DataFrame(output_dicts)
     output_dicts.to_csv(output_file_path)
