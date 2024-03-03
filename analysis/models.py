@@ -415,7 +415,7 @@ def get_model_from_descriptor(descriptor, input_shape):
         model.add(Dense(1, activation='sigmoid'))
     
     # CNN Model
-    elif "CNN" in descriptor:
+    elif "CNN" in descriptor and "Attention" not in descriptor:
         num_filters, kernel_size = map(int, re.search(r"CNN_(\d+)_filters_(\d+)_kernels", descriptor).groups())
         model = Sequential()
         model.add(Conv1D(filters=num_filters, kernel_size=kernel_size, activation='relu', input_shape=input_shape))
@@ -423,6 +423,11 @@ def get_model_from_descriptor(descriptor, input_shape):
         model.add(Flatten())
         model.add(Dense(num_filters // 2, activation='relu'))
         model.add(Dense(1, activation='sigmoid'))
+
+    # CNN with Attention Model
+    elif "CNNA" in descriptor:
+        num_filters, kernel_size = map(int, re.search(r"CNNA_(\d+)_filters_(\d+)_kernels", descriptor).groups())
+        model = create_acnn_model2(input_shape, 1, num_filters, kernel_size)
     
     else:
         raise ValueError("Model descriptor not recognized.")
