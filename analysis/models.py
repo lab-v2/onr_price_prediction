@@ -298,6 +298,7 @@ def evaluate_attention_cnn2(filters, kernel_size, X_train, y_train, X_val, y_val
         #model = create_acnn_model(X_train.shape, 2, filters, kernel_size)
         #model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=[auc])
         model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=["accuracy"])
+        
     # EarlyStopping callback
     #early_stopping = EarlyStopping(monitor=f'val_{auc.name}', patience=10, restore_best_weights=True)
     early_stopping = EarlyStopping(monitor=f'val_loss', patience=50, restore_best_weights=True)
