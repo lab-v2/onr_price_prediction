@@ -446,6 +446,8 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
     print(f"rules index: {rules_index}")
     for confident in [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]:
         y_pred_all = []
+
+        # Use a model (with high accuracy) as baseline and use high [OPTIMAL_METRIC] models to improve it
         for ri in rules_index:
             name = "Confident " + str(confident) + "Rule " + rules[ri][2] + "for " + rules[best_acc_index][2]
             try:
@@ -459,7 +461,8 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 save_predictions_to_file(name, y_pred, y_test, pred_file_path)
             except Exception as e:
                 print(f"Failed to evaluate {name}: {e}")
-                
+        
+        # Use a model (with high accuracy) as baseline with ensemble to improve it
         name = "Confident " + str(confident) + "Rule all" + "for " + rules[best_acc_index][2]
         try:
             y_pred, output_dict = evaluate_edcr(name, y_pred_all, rules[best_acc_index][0], y_test)
