@@ -434,7 +434,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
 
     # EDCR
     df1 = pd.DataFrame([x[3] for x in rules])   # look at acc
-    best_acc_index = df1[0].idxmax()
+    best_acc_index = df1[0].idxmax()    # highest acc model
     df2 = pd.DataFrame([x[4] for x in rules])   # look at f1
     df2 = df2.drop(index = best_acc_index)  # models with the highest acc from before are excluded from the f1 dataframe
     df2 = df2.sort_values(by = 0, ascending=False)
