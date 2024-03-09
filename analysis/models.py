@@ -431,13 +431,13 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 print(f"Failed to evaluate CNN with {filter} filters and {kernel} kernel size: {e}")
 
     # EDCR
-    df1 = pd.DataFrame([x[3] for x in rules])
+    df1 = pd.DataFrame([x[3] for x in rules])   # look at acc
     best_acc_index = df1[0].idxmax()
-    df2 = pd.DataFrame([x[4] for x in rules])
-    df2 = df2.drop(index = best_acc_index)
+    df2 = pd.DataFrame([x[4] for x in rules])   # look at f1
+    df2 = df2.drop(index = best_acc_index)  # models with the highest acc from before are excluded from the f1 dataframe
     df2 = df2.sort_values(by = 0, ascending=False)
     sorted_f1 = list(df2.index)
-    rules_index = sorted_f1[:5]
+    rules_index = sorted_f1[:5]     # top 5 best f1 models
     
     print(f"best acc index: {best_acc_index}")
     print(f"rules index: {rules_index}")
