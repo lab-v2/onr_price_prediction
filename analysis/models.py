@@ -12,6 +12,7 @@ import re
 import os
 
 OPTIMAL_METRIC = 'F1 (1)'
+DUMB_MODELS = ['dumb_spikes', 'dumb_non_spikes']
 
 auc_count = 0
 auc = tf.keras.metrics.AUC()
@@ -465,7 +466,20 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             output_dicts.append(output_dict)                                                                                                          
             save_predictions_to_file(name, y_pred, y_test, pred_file_path)
         except Exception as e:
-            print(f"Failed to evaluate {name}: {e}")
+            print(f"Failed to evaluate {name}: {e}")  
+
+        # Use dumb model as baseline with ensemble to improve it
+        for dumb in DUMB_MODELS :
+            name = "Confident " + str(confident) + "Rule all" + "for " + {dumb}
+            try:
+                dumb_df = pd.read_csv(f'{dumb}_predictions.csv')
+                y_pred_dumb = dumb_df['Predicted']
+                y_pred, output_dict = evaluate_edcr(name, y_pred_all, y_pred_dumb, y_test)
+                output_dicts.append(output_dict)                                                                                                          
+                save_predictions_to_file(name, y_pred, y_test, pred_file_path)
+            except Exception as e:
+                print(f"Failed to evaluate {name}: {e}") 
+        
     # After identifying the best model, save it
     output_dicts = pd.DataFrame(output_dicts)
     output_dicts.to_csv(output_file_path)
