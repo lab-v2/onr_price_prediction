@@ -11,6 +11,8 @@ from tensorflow.keras.callbacks import EarlyStopping
 import re
 import os
 
+OPTIMAL_METRIC = 'F1 (1)'
+
 auc_count = 0
 auc = tf.keras.metrics.AUC()
 def make_output_dict(name, params, classification_report, prior):
@@ -368,7 +370,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             model_descriptor = f"LSTM_{layers}_layers"
             model_path = f'{saved_model_path}/{model_descriptor}.h5'
             y_pred, output_dict, y_pred_lstm, acc, model = evaluate_lstm(layers, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
-            rules.append([y_pred, y_pred_lstm, f"LSTM_{layers}", output_dict['Accuracy'], output_dict['F1 (1)']]) 
+            rules.append([y_pred, y_pred_lstm, f"LSTM_{layers}", output_dict['Accuracy'], output_dict[OPTIMAL_METRIC]]) 
             output_dicts.append(output_dict)
             save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test, pred_file_path)
 
@@ -386,7 +388,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 model_path = f'{saved_model_path}/{model_descriptor}.h5'
                 y_pred, output_dict, y_pred_cnna, acc, model  = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path) # Switch this later?
                 #rules.append([y_pred_cnna, f"CNNA_{filter}_{kernel}"]) 
-                rules.append([y_pred, y_pred_cnna, f"CNNA_{filter}_{kernel}", output_dict['Accuracy'], output_dict['F1 (1)']]) 
+                rules.append([y_pred, y_pred_cnna, f"CNNA_{filter}_{kernel}", output_dict['Accuracy'], output_dict[OPTIMAL_METRIC]]) 
                 output_dicts.append(output_dict)
                 save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
 
@@ -402,7 +404,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             model_path = f'{saved_model_path}/{model_descriptor}.h5'
             y_pred, output_dict, y_pred_rnn, acc, model  = evaluate_rnn(units, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
             #rules.append([y_pred_rnn, f"RNN_{units}"]) 
-            rules.append([y_pred, y_pred_rnn, f"RNN_{units}", output_dict['Accuracy'], output_dict['F1 (1)']]) 
+            rules.append([y_pred, y_pred_rnn, f"RNN_{units}", output_dict['Accuracy'], output_dict[OPTIMAL_METRIC]]) 
             output_dicts.append(output_dict)
             save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test, pred_file_path)
 
@@ -420,7 +422,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 model_path = f'{saved_model_path}/{model_descriptor}.h5'
                 y_pred, output_dict, y_pred_cnn, acc, model  = evaluate_cnn(filter, kernel, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
                 #rules.append([y_pred_cnn, f"CNN_{filter}_{kernel}"]) 
-                rules.append([y_pred, y_pred_cnn, f"CNN_{filter}_{kernel}", output_dict['Accuracy'], output_dict['F1 (1)']]) 
+                rules.append([y_pred, y_pred_cnn, f"CNN_{filter}_{kernel}", output_dict['Accuracy'], output_dict[OPTIMAL_METRIC]]) 
                 output_dicts.append(output_dict)
                 save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
 
