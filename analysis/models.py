@@ -312,6 +312,12 @@ def evaluate_attention_cnn2(filters, kernel_size, X_train, y_train, X_val, y_val
     #y_pred_ori = y_pred
     return y_pred, output, y_pred_ori, output['Recall (1)'], model
 
+def evaluate_dumb_model(y_test, model_type='non_spikes'):
+    y_pred = np.ones(len(y_test), dtype=int) if model_type == 'spikes' else np.zeros(len(y_test), dtype=int)
+    output_dict = make_output_dict("Dumb Model", model_type, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
+    
+    return y_pred, output_dict
+
 def evaluate_edcr(name, y_pred1, y_pred2, y_test):
     print(y_pred1.shape,type(y_pred1))
     print(y_pred2.shape,type(y_pred2))
@@ -433,6 +439,12 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             except Exception as e:
                 print(f"Failed to evaluate CNN with {filter} filters and {kernel} kernel size: {e}")
 
+    # Dumb models
+    for dm in ['spikes', 'non_spikes']:
+        y_pred, output_dict = evaluate_dumb_model(y_test, model_type=dm)
+        output_dicts.append(output_dict)
+        save_predictions_to_file(f'Dumb_Model_{dm}', y_pred, y_test, pred_file_path)
+
     # EDCR
     df1 = pd.DataFrame([x[3] for x in rules])   # look at acc
     best_acc_index = df1[0].idxmax()    # highest acc model
@@ -472,16 +484,18 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             print(f"Failed to evaluate {name}: {e}")  
 
         # Use dumb model as baseline with ensemble to improve it
-        for dumb in DUMB_MODELS :
-            name = "Confident " + str(confident) + "Rule all" + "for " + {dumb}
+        for dumb in DUMB_MODELS:
+            name = "Confident " + str(confident) + "Rule all" + "for " + dumb
             try:
-                dumb_df = pd.read_csv(f'{dumb}_predictions.csv')
-                y_pred_dumb = dumb_df['Predicted']
+                pred_value = 1 if dumb == 'dumb_spikes' else 0
+                
+                y_pred_dumb = pd.Series([pred_value] * len(y_test))
+                
                 y_pred, output_dict = evaluate_edcr(name, y_pred_all, y_pred_dumb, y_test)
                 output_dicts.append(output_dict)                                                                                                          
                 save_predictions_to_file(name, y_pred, y_test, pred_file_path)
             except Exception as e:
-                print(f"Failed to evaluate {name}: {e}") 
+                print(f"Failed to evaluate {name}: {e}")
         
     # After identifying the best model, save it
     output_dicts = pd.DataFrame(output_dicts)
@@ -547,4 +561,6 @@ def retrain_best_model(saved_model_path, X_train, y_train, X_val, y_val, X_test,
     output_dicts = pd.DataFrame([output])
     
     return output_dicts
+
+
     
