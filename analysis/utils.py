@@ -86,8 +86,6 @@ def detect_spikes_new(df, column, window_size, center=False):
     
     return spikes, feature, labels
 
-    
-
 def detect_spikes_iqr(df, column):
     Q1 = df[column].quantile(0.25)
     Q3 = df[column].quantile(0.75)

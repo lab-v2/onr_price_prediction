@@ -1,0 +1,35 @@
+DATE_COLUMN = 'Date'
+VALUE_COLUMN = 'Value'  
+QUANTITY_COLUMN = 'Std. Quantity (KG)'
+UNIT_RATE_COLUMN = 'Std. Unit Rate ($/KG)'
+BRENT_OIL_COLUMN = 'Brent Oil Value'
+WTI_OIL_COLUMN = 'WTI Oil Value'
+GROSS_WEIGHT_COLUMN = 'Gross Weight'
+SHIP_COUNT_COLUMN = 'ship_count'
+PORT_COUNT_COLUMN = 'popular_port_count'
+ARIMA_RESIDUAL_COLUMN = 'ARIMA_Residuals'
+VOLZA_COLUMNS = [VALUE_COLUMN, QUANTITY_COLUMN, UNIT_RATE_COLUMN]
+OIL_COLUMNS = [WTI_OIL_COLUMN, BRENT_OIL_COLUMN]
+AIS_COLUMNS = [SHIP_COUNT_COLUMN, PORT_COUNT_COLUMN]
+
+VALUE_SPIKES_COLUMN = 'Value Spikes'  
+QUANTITY_SPIKES_COLUMN = 'Std. Quantity (KG) Spikes'
+UNIT_RATE_SPIKES_COLUMN = 'Std. Unit Rate ($/KG) Spikes'
+BRENT_OIL_SPIKES_COLUMN = 'Brent Oil Value Spikes'
+WTI_OIL_SPIKES_COLUMN = 'WTI Oil Value Spikes'
+SHIP_COUNT_SPIKES_COLUMN = 'Ship Count Spikes'
+PORT_COUNT_SPIKES_COLUMN = 'Port Count Spikes'
+
+ORIGIN_COUNTRY_COLUMN = 'Country of Origin'
+DEST_COUNTRY_COLUMN = 'Country of Destination'
+
+TARGET_COLUMN = ['Price']
+
+PETROL_FILE_PATH = '../volza/petroleum/petrol_crude_oil_spot_price.csv'
+AIS_POPULAR_FILE_PATH = f'../ais/ais_ml_features.csv' 
+
+SPIKES_THRESHOLD = 2
+BIN_COUNT = 10
+FILL_METHOD = 'ffill'
+
+RANDOM_STATE = 42
