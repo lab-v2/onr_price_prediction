@@ -329,6 +329,26 @@ def evaluate_edcr(name, y_pred1, y_pred2, y_test):
     # Generate classification report
     return y_pred, output
 
+def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test):
+    print(rule_model_pred.shape,type(rule_model_pred))
+    print(base_model_pred.shape,type(base_model_pred))
+
+    rule_model_pred = np.squeeze(rule_model_pred)
+    base_model_pred = np.squeeze(base_model_pred)
+
+    # Flag incorrect predictions from base model
+    error_flags = base_model_pred != y_test
+
+    # Only correct the incorrect flags
+    y_pred = np.copy(base_model_pred)
+    y_pred[error_flags] = rule_model_pred[error_flags]
+
+    # y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
+    output = make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
+
+    # Generate classification report
+    return y_pred, output
+
 def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
     try:
         os.makedirs(directory_path, exist_ok=True)
@@ -454,7 +474,13 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
     df2 = df2.sort_values(by = 0, ascending=False)
     sorted_f1 = list(df2.index)
     rules_index = sorted_f1[:5]     # top 5 best f1 models
-    
+
+    # Just to clear up confusion
+    # base_model = rules[best_acc_index]
+    # base_model_pred = base_model[0]
+    # base_model_pred_confidence = base_model[1]
+    # base_model_name = base_model[2]
+
     print(f"best acc index: {best_acc_index}")
     print(f"rules index: {rules_index}")
     for confident in [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]:
@@ -462,14 +488,25 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
 
         # Use a model (with high accuracy) as baseline and use high [OPTIMAL_METRIC] models to improve it
         for ri in rules_index:
+
+            # Just to clear up confusion
+            # rule_model = rules[ri]
+            # rule_model_pred = rule_model[0]
+            # rule_model_pred_confidence = rule_model[1]
+            # rule_model_name = rule_model[2]
+
             name = "Confident " + str(confident) + "Rule " + rules[ri][2] + "for " + rules[best_acc_index][2]
+            # Checking the confidence of a rule against a threshold. If it exceeds, we change the base model's prediction to '1'. 
+            # We also aggregate these into y_pred_all for the ensemble later on.
+            # TODO: Only apply these to predictions in the base model that are WRONG. (Detection algo needed)
+            # TODO: Create a detection rule function that flags incorrect predictions as something else. Then we apply this rule confidence logic to flagged samples.
             try:
                 y_pred1 = (rules[ri][1] > confident).astype(int)
                 if(len(y_pred_all)):
                     y_pred_all = np.squeeze(y_pred_all) | np.squeeze(y_pred1)
                 else:
                     y_pred_all = y_pred1
-                y_pred, output_dict = evaluate_edcr(name, y_pred1, rules[best_acc_index][0], y_test)
+                y_pred, output_dict = evaluate_edcr_detection(name, y_pred1, rules[best_acc_index][0], y_test)
                 output_dicts.append(output_dict)                                                                                                          
                 save_predictions_to_file(name, y_pred, y_test, pred_file_path)
             except Exception as e:
@@ -478,7 +515,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
         # Use a model (with high accuracy) as baseline with ensemble to improve it
         name = "Confident " + str(confident) + "Rule all" + "for " + rules[best_acc_index][2]
         try:
-            y_pred, output_dict = evaluate_edcr(name, y_pred_all, rules[best_acc_index][0], y_test)
+            y_pred, output_dict = evaluate_edcr_detection(name, y_pred_all, rules[best_acc_index][0], y_test)
             output_dicts.append(output_dict)                                                                                                          
             save_predictions_to_file(name, y_pred, y_test, pred_file_path)
         except Exception as e:
@@ -492,11 +529,12 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 
                 y_pred_dumb = pd.Series([pred_value] * len(y_test))
                 
-                y_pred, output_dict = evaluate_edcr(name, y_pred_all, y_pred_dumb, y_test)
+                y_pred, output_dict = evaluate_edcr_detection(name, y_pred_all, y_pred_dumb, y_test)
                 output_dicts.append(output_dict)                                                                                                          
                 save_predictions_to_file(name, y_pred, y_test, pred_file_path)
             except Exception as e:
                 print(f"Failed to evaluate {name}: {e}")
+
         
     # After identifying the best model, save it
     output_dicts = pd.DataFrame(output_dicts)
