@@ -349,6 +349,18 @@ def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test):
     # Generate classification report
     return y_pred, output
 
+def edcr_evaluation_method(method, name, rule_pred, base_pred, y_test, pred_file_path, metric_name):
+    if method == 'direct':
+        y_pred, output_dict = evaluate_edcr(name, rule_pred, base_pred, y_test)
+    elif method == 'detection':
+        y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, y_test)
+    else:
+        raise ValueError("Unknown method specified")
+
+    # Save the prediction and evaluation results
+    save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}_{method}")
+    return output_dict
+
 def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
     try:
         os.makedirs(directory_path, exist_ok=True)
@@ -521,7 +533,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 # rule_model_pred_confidence = rule_model[1]
                 # rule_model_name = rule_model[2]
 
-                name = metric_name + "Confident " + str(confident) + "Rule " + rules[ri][2] + "for " + rules[best_acc_index][2]
+                name = "Confident " + str(confident) + "Rule " + rules[ri][2] + "for " + rules[best_acc_index][2]
                 # Checking the confidence of a rule against a threshold. If it exceeds, we change the base model's prediction to '1'. 
                 # We also aggregate these into y_pred_all for the ensemble later on.
                 # TODO: Only apply these to predictions in the base model that are WRONG. (Detection algo needed)
@@ -532,18 +544,36 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                         y_pred_all = np.squeeze(y_pred_all) | np.squeeze(y_pred1)
                     else:
                         y_pred_all = y_pred1
-                    y_pred, output_dict = evaluate_edcr_detection(name, y_pred1, rules[best_acc_index][0], y_test)
-                    output_dicts.append(output_dict)                                                                                                          
-                    save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}")
+
+                    # Evaluate using direct approach
+                    output_dict_direct = edcr_evaluation_method('direct', name, y_pred1, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
+                    output_dicts.append(output_dict_direct)
+
+                    # Evaluate using detection approach
+                    output_dict_detection = edcr_evaluation_method('detection', name, y_pred1, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
+                    output_dicts.append(output_dict_detection)
+        
+                    # y_pred, output_dict = evaluate_edcr_detection(name, y_pred1, rules[best_acc_index][0], y_test)
+                    # output_dicts.append(output_dict)                                                                                                          
+                    # save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}")
+
                 except Exception as e:
                     print(f"Failed to evaluate {name}: {e}")
             
             # Use a model (with high accuracy) as baseline with ensemble to improve it
             name = "Confident " + str(confident) + "Rule all" + "for " + rules[best_acc_index][2]
             try:
-                y_pred, output_dict = evaluate_edcr_detection(name, y_pred_all, rules[best_acc_index][0], y_test)
-                output_dicts.append(output_dict)                                                                                                          
-                save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}")
+                # y_pred, output_dict = evaluate_edcr_detection(name, y_pred_all, rules[best_acc_index][0], y_test)
+                # output_dicts.append(output_dict)                                                                                                          
+                # save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}")
+
+                # Evaluate using direct approach
+                output_dict_direct = edcr_evaluation_method('direct', name, y_pred_all, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
+                output_dicts.append(output_dict_direct)
+
+                # Evaluate using detection approach
+                output_dict_detection = edcr_evaluation_method('detection', name, y_pred_all, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
+                output_dicts.append(output_dict_detection)
             except Exception as e:
                 print(f"Failed to evaluate {name}: {e}")  
 
@@ -555,9 +585,18 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                     
                     y_pred_dumb = pd.Series([pred_value] * len(y_test))
                     
-                    y_pred, output_dict = evaluate_edcr_detection(name, y_pred_all, y_pred_dumb, y_test)
-                    output_dicts.append(output_dict)                                                                                                          
-                    save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}")
+
+                    # y_pred, output_dict = evaluate_edcr_detection(name, y_pred_all, y_pred_dumb, y_test)
+                    # output_dicts.append(output_dict)                                                                                                          
+                    # save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}")
+
+                    # Evaluate using direct approach
+                    output_dict_direct = edcr_evaluation_method('direct', name, y_pred_all, y_pred_dumb, y_test, pred_file_path, metric_name)
+                    output_dicts.append(output_dict_direct)
+
+                    # Evaluate using detection approach
+                    output_dict_detection = edcr_evaluation_method('detection', name, y_pred_all, y_pred_dumb, y_test, pred_file_path, metric_name)
+                    output_dicts.append(output_dict_detection)
                 except Exception as e:
                     print(f"Failed to evaluate {name}: {e}")
         
