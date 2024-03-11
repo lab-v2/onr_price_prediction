@@ -12,7 +12,7 @@ import re
 import os
 
 OPTIMAL_METRIC = 'F1 (1)'
-DUMB_MODELS = ['dumb_spikes', 'dumb_non_spikes', 'CNN_32_filters_3_kernels_predictions.csv', 'CNN_Attention_32_filters_3_kernels_predictions.csv']
+DUMB_MODELS = ['dumb_spikes', 'dumb_non_spikes']
 
 auc_count = 0
 auc = tf.keras.metrics.AUC()
@@ -329,38 +329,6 @@ def evaluate_edcr(name, y_pred1, y_pred2, y_test):
     # Generate classification report
     return y_pred, output
 
-def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test):
-    print(rule_model_pred.shape,type(rule_model_pred))
-    print(base_model_pred.shape,type(base_model_pred))
-
-    rule_model_pred = np.squeeze(rule_model_pred)
-    base_model_pred = np.squeeze(base_model_pred)
-
-    # Flag incorrect predictions from base model
-    error_flags = base_model_pred != y_test
-
-    # Only correct the incorrect flags
-    y_pred = np.copy(base_model_pred)
-    y_pred[error_flags] = rule_model_pred[error_flags]
-
-    # y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
-    output = make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-
-    # Generate classification report
-    return y_pred, output
-
-def edcr_evaluation_method(method, name, rule_pred, base_pred, y_test, pred_file_path, metric_name):
-    if method == 'direct':
-        y_pred, output_dict = evaluate_edcr(name, rule_pred, base_pred, y_test)
-    elif method == 'detection':
-        y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, y_test)
-    else:
-        raise ValueError("Unknown method specified")
-
-    # Save the prediction and evaluation results
-    save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}_{method}")
-    return output_dict
-
 def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
     try:
         os.makedirs(directory_path, exist_ok=True)
@@ -410,7 +378,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             model_descriptor = f"LSTM_{layers}_layers"
             model_path = f'{saved_model_path}/{model_descriptor}.h5'
             y_pred, output_dict, y_pred_lstm, acc, model = evaluate_lstm(layers, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
-            rules.append([y_pred, y_pred_lstm, f"LSTM_{layers}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
+            rules.append([y_pred, y_pred_lstm, f"LSTM_{layers}", output_dict['Accuracy'], output_dict[OPTIMAL_METRIC]]) 
             output_dicts.append(output_dict)
             save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test, pred_file_path)
 
@@ -428,7 +396,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 model_path = f'{saved_model_path}/{model_descriptor}.h5'
                 y_pred, output_dict, y_pred_cnna, acc, model  = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path) # Switch this later?
                 #rules.append([y_pred_cnna, f"CNNA_{filter}_{kernel}"]) 
-                rules.append([y_pred, y_pred_cnna, f"CNNA_{filter}_{kernel}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
+                rules.append([y_pred, y_pred_cnna, f"CNNA_{filter}_{kernel}", output_dict['Accuracy'], output_dict[OPTIMAL_METRIC]]) 
                 output_dicts.append(output_dict)
                 save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
 
@@ -444,7 +412,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             model_path = f'{saved_model_path}/{model_descriptor}.h5'
             y_pred, output_dict, y_pred_rnn, acc, model  = evaluate_rnn(units, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
             #rules.append([y_pred_rnn, f"RNN_{units}"]) 
-            rules.append([y_pred, y_pred_rnn, f"RNN_{units}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
+            rules.append([y_pred, y_pred_rnn, f"RNN_{units}", output_dict['Accuracy'], output_dict[OPTIMAL_METRIC]]) 
             output_dicts.append(output_dict)
             save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test, pred_file_path)
 
@@ -462,7 +430,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 model_path = f'{saved_model_path}/{model_descriptor}.h5'
                 y_pred, output_dict, y_pred_cnn, acc, model  = evaluate_cnn(filter, kernel, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
                 #rules.append([y_pred_cnn, f"CNN_{filter}_{kernel}"]) 
-                rules.append([y_pred, y_pred_cnn, f"CNN_{filter}_{kernel}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
+                rules.append([y_pred, y_pred_cnn, f"CNN_{filter}_{kernel}", output_dict['Accuracy'], output_dict[OPTIMAL_METRIC]]) 
                 output_dicts.append(output_dict)
                 save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
 
@@ -481,121 +449,54 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
     # EDCR
     df1 = pd.DataFrame([x[3] for x in rules])   # look at acc
     best_acc_index = df1[0].idxmax()    # highest acc model
-
-    # Rules based on F1
-    f1_df = pd.DataFrame([x[4] for x in rules])   # look at f1
-    f1_df = f1_df.drop(index = best_acc_index)  # models with the highest acc from before are excluded from the f1 dataframe
-    f1_df = f1_df.sort_values(by = 0, ascending=False)
-    sorted_f1 = list(f1_df.index)
-
-    # Rules based on Recall
-    rec_df = pd.DataFrame([x[5] for x in rules])   # look at recall
-    rec_df = rec_df.drop(index = best_acc_index)  # models with the highest acc from before are excluded from the recall dataframe
-    rec_df = rec_df.sort_values(by = 0, ascending=False)
-    sorted_rec = list(rec_df.index)
-
-    # Rules based on Precision
-    prec_df = pd.DataFrame([x[6] for x in rules])   # look at precision
-    prec_df = prec_df.drop(index = best_acc_index)  # models with the highest acc from before are excluded from the precision dataframe
-    prec_df = prec_df.sort_values(by = 0, ascending=False)
-    sorted_prec = list(prec_df.index)
-
-
-    # rules_index = sorted_f1[:5]     # top 5 best f1 models
-
-    rules_index = {
-        'F1': sorted_f1[:5], 
-        'Recall': sorted_rec[:5],
-        'Precision': sorted_prec[:5] 
-    }
-
-    # Just to clear up confusion
-    # base_model = rules[best_acc_index]
-    # base_model_pred = base_model[0]
-    # base_model_pred_confidence = base_model[1]
-    # base_model_name = base_model[2]
+    df2 = pd.DataFrame([x[4] for x in rules])   # look at f1
+    df2 = df2.drop(index = best_acc_index)  # models with the highest acc from before are excluded from the f1 dataframe
+    df2 = df2.sort_values(by = 0, ascending=False)
+    sorted_f1 = list(df2.index)
+    rules_index = sorted_f1[:5]
 
     print(f"best acc index: {best_acc_index}")
-    # print(f"rules index: {rules_index}")
+    print(f"rules index: {rules_index}")
+    for confident in [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]:
+        y_pred_all = []
 
-    for metric_name, metric_rule_index in rules_index.items():
-        print(f"\nEvaluating rules based on {metric_name}:")
-
-        for confident in [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]:
-            y_pred_all = []
-
-            # Use a model (with high accuracy) as baseline and use high [OPTIMAL_METRIC] models to improve it
-            for ri in metric_rule_index:
-
-                # Just to clear up confusion
-                # rule_model = rules[ri]
-                # rule_model_pred = rule_model[0]
-                # rule_model_pred_confidence = rule_model[1]
-                # rule_model_name = rule_model[2]
-
-                name = "Confident " + str(confident) + "Rule " + rules[ri][2] + "for " + rules[best_acc_index][2]
-                # Checking the confidence of a rule against a threshold. If it exceeds, we change the base model's prediction to '1'. 
-                # We also aggregate these into y_pred_all for the ensemble later on.
-                # TODO: Only apply these to predictions in the base model that are WRONG. (Detection algo needed)
-                # TODO: Create a detection rule function that flags incorrect predictions as something else. Then we apply this rule confidence logic to flagged samples.
-                try:
-                    y_pred1 = (rules[ri][1] > confident).astype(int)
-                    if(len(y_pred_all)):
-                        y_pred_all = np.squeeze(y_pred_all) | np.squeeze(y_pred1)
-                    else:
-                        y_pred_all = y_pred1
-
-                    # Evaluate using direct approach
-                    output_dict_direct = edcr_evaluation_method('direct', name, y_pred1, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
-                    output_dicts.append(output_dict_direct)
-
-                    # Evaluate using detection approach
-                    output_dict_detection = edcr_evaluation_method('detection', name, y_pred1, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
-                    output_dicts.append(output_dict_detection)
-        
-                    # y_pred, output_dict = evaluate_edcr_detection(name, y_pred1, rules[best_acc_index][0], y_test)
-                    # output_dicts.append(output_dict)                                                                                                          
-                    # save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}")
-
-                except Exception as e:
-                    print(f"Failed to evaluate {name}: {e}")
-            
-            # Use a model (with high accuracy) as baseline with ensemble to improve it
-            name = "Confident " + str(confident) + "Rule all" + "for " + rules[best_acc_index][2]
+        # Use a model (with high accuracy) as baseline and use high [OPTIMAL_METRIC] models to improve it
+        for ri in rules_index:
+            name = "Confident " + str(confident) + "Rule " + rules[ri][2] + "for " + rules[best_acc_index][2]
             try:
-                # y_pred, output_dict = evaluate_edcr_detection(name, y_pred_all, rules[best_acc_index][0], y_test)
-                # output_dicts.append(output_dict)                                                                                                          
-                # save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}")
-
-                # Evaluate using direct approach
-                output_dict_direct = edcr_evaluation_method('direct', name, y_pred_all, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
-                output_dicts.append(output_dict_direct)
-
-                # Evaluate using detection approach
-                output_dict_detection = edcr_evaluation_method('detection', name, y_pred_all, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
-                output_dicts.append(output_dict_detection)
+                y_pred1 = (rules[ri][1] > confident).astype(int)
+                if(len(y_pred_all)):
+                    y_pred_all = np.squeeze(y_pred_all) | np.squeeze(y_pred1)
+                else:
+                    y_pred_all = y_pred1
+                y_pred, output_dict = evaluate_edcr(name, y_pred1, rules[best_acc_index][0], y_test)
+                output_dicts.append(output_dict)                                                                                                          
+                save_predictions_to_file(name, y_pred, y_test, pred_file_path)
             except Exception as e:
-                print(f"Failed to evaluate {name}: {e}")  
+                print(f"Failed to evaluate {name}: {e}")
+        
+        # Use a model (with high accuracy) as baseline with ensemble to improve it
+        name = "Confident " + str(confident) + "Rule all" + "for " + rules[best_acc_index][2]
+        try:
+            y_pred, output_dict = evaluate_edcr(name, y_pred_all, rules[best_acc_index][0], y_test)
+            output_dicts.append(output_dict)                                                                                                          
+            save_predictions_to_file(name, y_pred, y_test, pred_file_path)
+        except Exception as e:
+            print(f"Failed to evaluate {name}: {e}")  
 
-            # Use dumb model as baseline with ensemble to improve it
-            for dumb in DUMB_MODELS:
-                name = "Confident " + str(confident) + "Rule all" + "for " + dumb
-                try:
-                    if dumb == 'dump_spikes' or dumb == 'dumb_non_spikes':
-                        pred_value = 1 if dumb == 'dumb_spikes' else 0
-                        y_pred_dumb = pd.Series([pred_value] * len(y_test))
-                    
-                        y_pred, output_dict = evaluate_edcr(name, y_pred_all, y_pred_dumb, y_test)
-                        output_dicts.append(output_dict)                                                                                                          
-                        save_predictions_to_file(name, y_pred, y_test, pred_file_path)
-                    else:
-                        y_pred_dumb = pd.read_csv(f"copper/test/predictions/test/{dumb}")['Predicted']
-                        y_pred, output_dict = evaluate_edcr(name, y_pred_all, y_pred_dumb, y_test)
-                        output_dicts.append(output_dict)                                                                                                          
-                        save_predictions_to_file(name, y_pred, y_test, pred_file_path)
-                        
-                except Exception as e:
-                    print(f"Failed to evaluate {name}: {e}")
+        # Use dumb model as baseline with ensemble to improve it
+        for dumb in DUMB_MODELS:
+            name = "Confident " + str(confident) + "Rule all" + "for " + dumb
+            try:
+                pred_value = 1 if dumb == 'dumb_spikes' else 0
+                
+                y_pred_dumb = pd.Series([pred_value] * len(y_test))
+                
+                y_pred, output_dict = evaluate_edcr(name, y_pred_all, y_pred_dumb, y_test)
+                output_dicts.append(output_dict)                                                                                                          
+                save_predictions_to_file(name, y_pred, y_test, pred_file_path)
+            except Exception as e:
+                print(f"Failed to evaluate {name}: {e}")
         
     # After identifying the best model, save it
     output_dicts = pd.DataFrame(output_dicts)

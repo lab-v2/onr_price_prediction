@@ -453,8 +453,8 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
     df2 = df2.drop(index = best_acc_index)  # models with the highest acc from before are excluded from the f1 dataframe
     df2 = df2.sort_values(by = 0, ascending=False)
     sorted_f1 = list(df2.index)
-    rules_index = sorted_f1[:5]     # top 5 best f1 models
-    
+    rules_index = sorted_f1[:5]
+
     print(f"best acc index: {best_acc_index}")
     print(f"rules index: {rules_index}")
     for confident in [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]:
@@ -503,7 +503,6 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                     
             except Exception as e:
                 print(f"Failed to evaluate {name}: {e}")
-        
     # After identifying the best model, save it
     output_dicts = pd.DataFrame(output_dicts)
     output_dicts.to_csv(output_file_path)
