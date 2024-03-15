@@ -36,6 +36,27 @@ def prior(y_test):
     spike_percentage_in_test = (total_spikes_in_test / total_data_points_in_test) 
     return spike_percentage_in_test
 
+def npy_to_bowpy(base_model_file_path, commodity_file_path):
+    """
+    base_model_file_path should be the file path to the base model csv
+    commodity_file_path should be the file path to the folder containing all the commodity predictions 
+    """
+    bowpy_dataframe = pd.read_csv(base_model_file_path)
+    bowpy_dataframe.rename(columns={"Predicted": "pred"}, inplace=True)
+    bowpy_dataframe.rename(columns={"True": "corr"}, inplace=True)
+    bowpy_dataframe['true_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 1 else 0, axis=1)
+    bowpy_dataframe['false_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 0 else 0, axis=1)
+
+    result_index = 0
+    for model in os.listdir(commodity_file_path):
+        extension = model.split('.')[-1]
+        if extension != 'csv':
+            continue
+        model_predictions = pd.read_csv(commodity_file_path + "/" + model)
+        bowpy_dataframe[f"rule_result{result_index}"] = model_predictions['Predicted']
+        result_index += 1
+    return bowpy_dataframe
+
 def save_predictions_to_file(model_name, y_pred, y_true=None, file_format="npy", commodity=''):
     if file_format == "npy":
         # Save as NumPy binary file
