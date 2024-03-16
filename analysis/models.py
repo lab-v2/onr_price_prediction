@@ -16,6 +16,38 @@ DUMB_MODELS = ['dumb_spikes', 'dumb_non_spikes']
 
 auc_count = 0
 auc = tf.keras.metrics.AUC()
+
+def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
+    try:
+        os.makedirs(directory_path, exist_ok=True)
+
+        # Check and adjust shapes. Flatten if 2D with one column, otherwise respect multi-dimensionality for multi-class
+        if y_pred.ndim > 1 and y_pred.shape[1] == 1:
+            y_pred = y_pred.flatten()
+        if y_test.ndim > 1 and y_test.shape[1] == 1:
+            y_test = y_test.flatten()
+
+        # Handling for multi-class classification where y_pred is not 1-dimensional
+        if y_pred.ndim > 1:
+            # For multi-dimensional y_pred, create a DataFrame with a column for each class/label
+            predictions_df = pd.DataFrame(y_pred, columns=[f'Predicted_{i}' for i in range(y_pred.shape[1])])
+            predictions_df['True'] = y_test  # Assuming y_test is correctly shaped or is a single class label
+        else:
+            # For 1-dimensional y_pred, proceed as before
+            predictions_df = pd.DataFrame({'Predicted': y_pred, 'True': y_test})
+
+        csv_filename = f"{directory_path}/{model_name}_predictions.csv"
+        predictions_df.to_csv(csv_filename, index=False)
+
+        # Optionally, save y_pred with original shape to NPY if it's crucial to preserve multi-dimensionality
+        npy_filename = f"{directory_path}/{model_name}_predictions.npy"
+        np.save(npy_filename, y_pred)
+
+        print(f"Predictions saved to CSV file: {csv_filename}")
+        print(f"Predictions saved to NPY file: {npy_filename}")
+    except Exception as e:
+        print(f"2. Failed to save predictions for {model_name}: {e}")
+
 def make_output_dict(name, params, classification_report, prior):
     return {
         "Name": name,
@@ -56,22 +88,6 @@ def npy_to_bowpy(base_model_file_path, commodity_file_path):
         bowpy_dataframe[f"rule_result{result_index}"] = model_predictions['Predicted']
         result_index += 1
     return bowpy_dataframe
-
-def save_predictions_to_file(model_name, y_pred, y_true=None, file_format="npy", commodity=''):
-    if file_format == "npy":
-        # Save as NumPy binary file
-        np.save(f"results/{commodity}/pred/{model_name}_predictions.npy", y_pred)
-        if y_true is not None:
-            np.save(f"results/{commodity}/true/{model_name}_true_labels.npy", y_true)
-    elif file_format == "csv":
-        # Save as CSV for easier readability
-        df = pd.DataFrame({"Predictions": y_pred.flatten()})
-        if y_true is not None:
-            df["True Labels"] = y_true
-        df.to_csv(f"results/{commodity}/.csv/{model_name}_predictions.csv", index=False)
-    else:
-        raise ValueError("Unsupported file format. Use 'npy' or 'csv'.")
-
 
 # Transformer
 def positional_encoding(length, d_model):
@@ -350,125 +366,37 @@ def evaluate_edcr(name, rule_model_pred, base_model_pred, y_test):
     # Generate classification report
     return y_pred, output
 
-# def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test, base_model_pred_confidence, confidence_lower=0):
-#     print(rule_model_pred.shape,type(rule_model_pred))
-#     print(base_model_pred.shape,type(base_model_pred))
-#     print(base_model_pred_confidence.shape, type(base_model_pred_confidence))
+def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test):
+    print(rule_model_pred.shape,type(rule_model_pred))
+    print(base_model_pred.shape,type(base_model_pred))
 
-
-#     rule_model_pred = np.squeeze(rule_model_pred)
-#     base_model_pred = np.squeeze(base_model_pred)
-#     base_model_pred_confidence = np.squeeze(base_model_pred_confidence)
-
-#     # Flag incorrect predictions from base model
-#     # error_flags = base_model_pred != y_test
-
-#     # Only correct the incorrect flags
-#     y_pred = np.copy(base_model_pred)
-#     error_flags = (base_model_pred_confidence >= confidence_lower) & (base_model_pred == 0)
-#     y_pred[error_flags] = rule_model_pred[error_flags]
-
-#     # y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
-#     output = make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-
-#     # Generate classification report
-#     return y_pred, output
-
-def calculate_recall(y_pred, y_test, class_of_interest=1):
-    true_positives = np.logical_and(y_pred == class_of_interest, y_test == class_of_interest).sum()
-    actual_positives = (y_test == class_of_interest).sum()
-    recall = true_positives / actual_positives if actual_positives > 0 else 0
-    return recall
-
-def evaluate_edcr_detection_with_epsilon(name, rule_model_pred, base_model_pred, y_test, epsilon=0.05):
-    print(f"rule_model_pred: {rule_model_pred.shape}, type: {type(rule_model_pred)}")
-    print(f"base_model_pred: {rule_model_pred.shape}, type: {type(base_model_pred)}")
-    
     rule_model_pred = np.squeeze(rule_model_pred)
     base_model_pred = np.squeeze(base_model_pred)
-    
-    # Initial recall of the base model for class 1
-    initial_recall = calculate_recall(base_model_pred, y_test, class_of_interest=1)
-    print(f"Initial Recall: {initial_recall}")
-    min_allowed_recall = max(0, initial_recall - epsilon)  # Define the minimum allowed recall after correction
-    print(f"Minimum Allowed Recall: {min_allowed_recall}")
 
-    corrected_preds = np.copy(base_model_pred)
-    
-    # Initially apply all potential corrections (base model predicts 0, rule predicts 1)
-    flags_for_correction = np.logical_and(base_model_pred == 0, rule_model_pred == 1)
-    corrected_preds[flags_for_correction] = 1  # apply correction
-    
-    # List of indexes where corrections were applied to revert one by one if needed
-    corrected_indexes = np.where(flags_for_correction)[0]
+    # Use detection to flag incorrect predictions
+    error_flags = base_model_pred != rule_model_pred
 
-    # Greedily revert corrections to ensure recall doesn't fall below the threshold
-    for index in corrected_indexes:
-        # Temporarily revert this correction
-        temp_corrected_preds = corrected_preds.copy()
-        temp_corrected_preds[index] = 0  # revert this correction
-        
-        # Calculate recall after this temporary reversion
-        temp_recall = calculate_recall(temp_corrected_preds, y_test, class_of_interest=1)
-        
-        # Keep this reversion if recall is still above the threshold
-        if temp_recall >= min_allowed_recall:
-            corrected_preds[index] = 0
-        else:
-            # Stop reverting if further reversion would drop recall below threshold
-            break
-    
-    # Generate and return classification report after applying selective corrections
-    output = make_output_dict("EDCR", name, classification_report(y_test, corrected_preds, output_dict=True), prior(y_test))
-    return corrected_preds, output
+    # Only correct the incorrect flags
+    y_pred = np.copy(base_model_pred)
+    y_pred[error_flags] = 1 - y_pred[error_flags]
 
+    # y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
+    output = make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
 
+    # Generate classification report
+    return y_pred, output
 
-
-
-def edcr_evaluation_method(method, name, rule_pred, base_pred, y_test, epsilon, pred_file_path, metric_name):
-    if method == 'direct':
+def edcr_evaluation_method(method, name, rule_pred, base_pred, y_test, pred_file_path, metric_name):
+    if method == 'correction':
         y_pred, output_dict = evaluate_edcr(name, rule_pred, base_pred, y_test)
-    elif method == 'detection':
-        y_pred, output_dict = evaluate_edcr_detection_with_epsilon(name, rule_pred, base_pred, y_test, epsilon)
-        # y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, y_test, base_model_pred_confidence, confidence_lower)
+    elif method == 'detection_correction':
+        y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, y_test)
     else:
         raise ValueError("Unknown method specified")
 
     # Save the prediction and evaluation results
     save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}_{method}")
     return output_dict
-
-def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
-    try:
-        os.makedirs(directory_path, exist_ok=True)
-
-        # Check and adjust shapes. Flatten if 2D with one column, otherwise respect multi-dimensionality for multi-class
-        if y_pred.ndim > 1 and y_pred.shape[1] == 1:
-            y_pred = y_pred.flatten()
-        if y_test.ndim > 1 and y_test.shape[1] == 1:
-            y_test = y_test.flatten()
-
-        # Handling for multi-class classification where y_pred is not 1-dimensional
-        if y_pred.ndim > 1:
-            # For multi-dimensional y_pred, create a DataFrame with a column for each class/label
-            predictions_df = pd.DataFrame(y_pred, columns=[f'Predicted_{i}' for i in range(y_pred.shape[1])])
-            predictions_df['True'] = y_test  # Assuming y_test is correctly shaped or is a single class label
-        else:
-            # For 1-dimensional y_pred, proceed as before
-            predictions_df = pd.DataFrame({'Predicted': y_pred, 'True': y_test})
-
-        csv_filename = f"{directory_path}/{model_name}_predictions.csv"
-        predictions_df.to_csv(csv_filename, index=False)
-
-        # Optionally, save y_pred with original shape to NPY if it's crucial to preserve multi-dimensionality
-        npy_filename = f"{directory_path}/{model_name}_predictions.npy"
-        np.save(npy_filename, y_pred)
-
-        print(f"Predictions saved to CSV file: {csv_filename}")
-        print(f"Predictions saved to NPY file: {npy_filename}")
-    except Exception as e:
-        print(f"2. Failed to save predictions for {model_name}: {e}")
 
 # Evaluate all models
 # TODO: create multiple .npy files with these cols: pred, corr, true_positive, false_positive, rule_result1, rule_result2 ... rule_resultn
@@ -493,10 +421,12 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
         try: 
             model_descriptor = f"LSTM_{layers}_layers"
             model_path = f'{saved_model_path}/{model_descriptor}.h5'
+            pred_confidence_path = f"{pred_file_path}_confidence"
             y_pred, output_dict, y_pred_lstm, acc, model = evaluate_lstm(layers, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
             rules.append([y_pred, y_pred_lstm, f"LSTM_{layers}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
             output_dicts.append(output_dict)
             save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test, pred_file_path)
+            save_predictions_to_file(f"LSTM_{layers}_layers", y_pred_lstm, y_test, pred_confidence_path)
 
             # Check if this model has the best accuracy so far
             print(output_dict)
@@ -515,6 +445,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 rules.append([y_pred, y_pred_cnna, f"CNNA_{filter}_{kernel}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
                 output_dicts.append(output_dict)
                 save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
+                save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred_cnna, y_test, pred_confidence_path)
 
                 # Check if this model has the best accuracy so far
                 print(f"CNN_Attention_{filter}_filters_{kernel}_kernels",output_dict)
@@ -531,7 +462,8 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             rules.append([y_pred, y_pred_rnn, f"RNN_{units}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
             output_dicts.append(output_dict)
             save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test, pred_file_path)
-
+            save_predictions_to_file(f"RNN_{units}_units", y_pred_rnn, y_test, pred_confidence_path)
+        
             # Check if this model has the best accuracy so far
             print(f"RNN_{units}_units:",output_dict)
             model.save(model_path)
@@ -549,6 +481,8 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                 rules.append([y_pred, y_pred_cnn, f"CNN_{filter}_{kernel}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
                 output_dicts.append(output_dict)
                 save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
+                save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred_cnn, y_test, pred_confidence_path)
+
 
                 # Check if this model has the best accuracy so far
                 print(f"CNN_{filter}_filters_{kernel}_kernels",output_dict)
@@ -605,12 +539,10 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
     print(f"best acc index: {best_acc_index}")
     # print(f"rules index: {rules_index}")
 
-    epsilon = 0.05
-
     for metric_name, metric_rule_index in rules_index.items():
         print(f"\nEvaluating rules based on {metric_name}:")
 
-        for confident in [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]:
+        for confident in [0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 0.95]:
             y_pred_all = []
 
             # Use a model (with high accuracy) as baseline and use high [OPTIMAL_METRIC] models to improve it
@@ -635,11 +567,11 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                         y_pred_all = y_pred1
 
                     # Evaluate using direct approach
-                    output_dict_direct = edcr_evaluation_method('direct', name, y_pred1, rules[best_acc_index][0], y_test, epsilon, pred_file_path, metric_name)
+                    output_dict_direct = edcr_evaluation_method('correction', name, y_pred1, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
                     output_dicts.append(output_dict_direct)
 
                     # Evaluate using detection approach
-                    output_dict_detection = edcr_evaluation_method('detection', name, y_pred1, rules[best_acc_index][0], y_test, epsilon, pred_file_path, metric_name)
+                    output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred1, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
                     output_dicts.append(output_dict_detection)
 
                 except Exception as e:
@@ -649,11 +581,11 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             name = "Confident " + str(confident) + "Rule all" + "for " + rules[best_acc_index][2]
             try:
                 # Evaluate using direct approach
-                output_dict_direct = edcr_evaluation_method('direct', name, y_pred_all, rules[best_acc_index][0], y_test, epsilon, pred_file_path, metric_name)
+                output_dict_direct = edcr_evaluation_method('correction', name, y_pred_all, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
                 output_dicts.append(output_dict_direct)
 
                 # Evaluate using detection approach
-                output_dict_detection = edcr_evaluation_method('detection', name, y_pred_all, rules[best_acc_index][0], y_test, epsilon, pred_file_path, metric_name)
+                output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred_all, rules[best_acc_index][0], y_test, pred_file_path, metric_name)
                 output_dicts.append(output_dict_detection)
             except Exception as e:
                 print(f"Failed to evaluate {name}: {e}")  
@@ -667,11 +599,11 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
                     y_pred_dumb = pd.Series([pred_value] * len(y_test))
 
                     # Evaluate using direct approach
-                    output_dict_direct = edcr_evaluation_method('direct', name, y_pred_all, y_pred_dumb, y_test, epsilon, pred_file_path, metric_name)
+                    output_dict_direct = edcr_evaluation_method('correction', name, y_pred_all, y_pred_dumb, y_test, pred_file_path, metric_name)
                     output_dicts.append(output_dict_direct)
 
                     # Evaluate using detection approach
-                    output_dict_detection = edcr_evaluation_method('detection', name, y_pred_all, y_pred_dumb, y_test, epsilon, pred_file_path, metric_name)
+                    output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred_all, y_pred_dumb, y_test, pred_file_path, metric_name)
                     output_dicts.append(output_dict_detection)
                 except Exception as e:
                     print(f"Failed to evaluate {name}: {e}")
