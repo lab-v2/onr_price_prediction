@@ -10,6 +10,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import EarlyStopping
 import re
 import os
+import reader
 
 OPTIMAL_METRIC = 'F1 (1)'
 DUMB_MODELS = ['dumb_spikes', 'dumb_non_spikes']
@@ -68,25 +69,38 @@ def prior(y_test):
     spike_percentage_in_test = (total_spikes_in_test / total_data_points_in_test) 
     return spike_percentage_in_test
 
-def npy_to_bowpy(base_model_file_path, rule_result_file_path):
+def extract_rule_confidence(model_filename):
     """
-    base_model_file_path should be the file path to the base model csv
-    rule_result_file_path should be the file path to the folder containing all the commodity predictions 
+    Extracts the confidence level from the rule model filename.
     """
+    parts = model_filename.split('Rule allfor')
+    if len(parts) > 1:
+        confidence = parts[0].split('Confident ')[-1].strip()
+        return f"rule_result_conf_{confidence}"
+    return None
+
+def npy_to_bowpy(base_model_file_path, rule_result_dir):
+    """
+    Merges base model predictions with the corresponding rule results.
+    Each "Confident X Rule allfor [BaseModel]" results in its own rule_result_x column.
+    """
+    # Read the base model predictions
     bowpy_dataframe = pd.read_csv(base_model_file_path)
-    bowpy_dataframe.rename(columns={"Predicted": "pred"}, inplace=True)
-    bowpy_dataframe.rename(columns={"True": "corr"}, inplace=True)
+    bowpy_dataframe.rename(columns={"Predicted": "pred", "True": "corr"}, inplace=True)
     bowpy_dataframe['true_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 1 else 0, axis=1)
     bowpy_dataframe['false_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 0 else 0, axis=1)
 
-    result_index = 0
-    for model in os.listdir(rule_result_file_path):
-        extension = model.split('.')[-1]
-        if extension != 'csv':
-            continue
-        model_predictions = pd.read_csv(rule_result_file_path + "/" + model)
-        bowpy_dataframe[f"rule_result{result_index}"] = model_predictions['Predicted']
-        result_index += 1
+    base_model_name = os.path.basename(base_model_file_path).replace("_predictions.csv", "")
+    mapped_base_model_name = reader.map_base_model_to_rule_name(base_model_name)  
+
+    # Iterate through the directory and add each rule's predictions as a new column
+    for model_file in os.listdir(rule_result_dir):
+        if model_file.endswith(".csv") and "Rule all" in model_file and mapped_base_model_name in model_file:
+            model_predictions = pd.read_csv(os.path.join(rule_result_dir, model_file))
+            column_name = extract_rule_confidence(model_file)
+            if column_name:
+                bowpy_dataframe[column_name] = model_predictions['Predicted']
+
     return bowpy_dataframe
 
 # Transformer

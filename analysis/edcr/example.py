@@ -5,9 +5,7 @@ import pandas as pd
 from src.rule_correction import *
 
 # load data
-METRIC = 'precision'
-
-with open(f'data/test_{METRIC}.npy', 'rb') as f:
+with open(f'data/test.npy', 'rb') as f:
     data = np.load(f, allow_pickle=True)
 
 results = []
@@ -19,7 +17,7 @@ for ep in epsilon:
     print(f"ep:{ep}\n{result}")
 col = ['pre', 'recall', 'F1', 'NSC', 'PSC', 'NRC', 'PRC']
 df = pd.DataFrame(results, columns = ['epsilon'] + col )
-df.to_csv(f"rule_for_Negativecorrection_{METRIC}.csv")
+df.to_csv(f"rule_for_Negativecorrection.csv")
 
 results = []
 for ep in epsilon:
@@ -30,7 +28,7 @@ for ep in epsilon:
 col = ['pre', 'recall', 'F1', 'NSC', 'PSC', 'NRC', 'PRC']
 #df = pd.DataFrame(results, columns = ['epsilon'] + col + ['acc', 'macro-F1', 'micro-F1'])
 df = pd.DataFrame(results, columns = ['epsilon'] + col )
-df.to_csv( f"rule_for_NPcorrection_{METRIC}.csv")
+df.to_csv( f"rule_for_NPcorrection.csv")
 
 results = []
 for ep in epsilon:
@@ -39,4 +37,4 @@ for ep in epsilon:
     results.append([ep] + result)
     print(f"ep:{ep}\n{result}")
 df = pd.DataFrame(results, columns = ['epsilon'] + col )
-df.to_csv( f"rule_for_PNcorrection_{METRIC}.csv")
+df.to_csv( f"rule_for_PNcorrection.csv")
