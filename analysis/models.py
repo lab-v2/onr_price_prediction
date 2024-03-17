@@ -394,49 +394,6 @@ def evaluate_dumb_model(y_test, model_type='non_spikes'):
     
     return y_pred, output_dict
 
-def evaluate_edcr(name, rule_model_pred, base_model_pred, y_test):
-    print(rule_model_pred.shape,type(rule_model_pred))
-    print(base_model_pred.shape,type(base_model_pred))
-
-    y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
-    output = make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-
-    # Generate classification report
-    return y_pred, output
-
-def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test):
-    print(rule_model_pred.shape,type(rule_model_pred))
-    print(base_model_pred.shape,type(base_model_pred))
-
-    rule_model_pred = np.squeeze(rule_model_pred)
-    base_model_pred = np.squeeze(base_model_pred)
-
-    # Use detection to flag incorrect predictions
-    error_flags = base_model_pred != rule_model_pred
-
-
-    y_pred = np.copy(base_model_pred)
-    y_pred[error_flags] = 1 - y_pred[error_flags] # flip prediction is rule says its wrong
-    # y_pred[error_flags] = rule_model_pred[error_flags] | y_pred[error_flags]    # Keep class 1 predictions, even if rule says its wrong.
-
-    # y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
-    output = make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-
-    # Generate classification report
-    return y_pred, output
-
-def edcr_evaluation_method(method, name, rule_pred, base_pred, y_test, pred_file_path, metric_name):
-    if method == 'correction':
-        y_pred, output_dict = evaluate_edcr(name, rule_pred, base_pred, y_test)
-    elif method == 'detection_correction':
-        y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, y_test)
-    else:
-        raise ValueError("Unknown method specified")
-
-    # Save the prediction and evaluation results
-    save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{metric_name}_{method}")
-    return output_dict
-
 # Evaluate all models
 def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain, edcr=True):
     global auc_count
