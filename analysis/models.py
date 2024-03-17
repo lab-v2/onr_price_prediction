@@ -92,12 +92,12 @@ def prior(y_test):
 
 #     return bowpy_dataframe
 
-def npy_to_bowpy(base_model_file_path, base_dir, confidence_levels):
+def npy_to_bowpy(base_model_file_path, base_dir, confidence_levels, algo):
     """
     Merges base model predictions with the corresponding rule results for specified confidence levels across multiple directories.
     """
     metrics = ['F1', 'Recall', 'Precision']
-    algos = ['correction', 'detection_correction']
+    # algos = ['correction', 'detection_correction']
 
     # Read the base model predictions
     bowpy_dataframe = pd.read_csv(base_model_file_path)
@@ -110,20 +110,20 @@ def npy_to_bowpy(base_model_file_path, base_dir, confidence_levels):
 
     # Loop through each combination of metric and algo
     for metric in metrics:
-        for algo in algos:
-            dir_name = f'test_{metric}_{algo}'
-            rule_result_dir = os.path.join(base_dir, dir_name)
-            if os.path.isdir(rule_result_dir):
-                # Iterate through files in the directory and add matching rule's predictions as a new column
-                for model_file in os.listdir(rule_result_dir):
-                    if model_file.endswith(".csv") and "Rule all" in model_file and mapped_base_model_name in model_file:
-                        confidence_column = reader.extract_rule_confidence(model_file, confidence_levels)
-                        if confidence_column:
-                            full_path = os.path.join(rule_result_dir, model_file)
-                            model_predictions = pd.read_csv(full_path)
-                            # Creating a unique column name for each rule result based on metric, algo, and confidence
-                            column_name = f"{dir_name}_{confidence_column}"
-                            bowpy_dataframe[column_name] = model_predictions['Predicted']
+        # for algo in algos:
+        dir_name = f'test_{metric}_{algo}'
+        rule_result_dir = os.path.join(base_dir, dir_name)
+        if os.path.isdir(rule_result_dir):
+            # Iterate through files in the directory and add matching rule's predictions as a new column
+            for model_file in os.listdir(rule_result_dir):
+                # if model_file.endswith(".csv") and "Rule all" in model_file and mapped_base_model_name in model_file:
+                if model_file.endswith(".csv") and "all" in model_file and mapped_base_model_name in model_file:
+                    confidence_column = reader.extract_rule_confidence(model_file, confidence_levels)
+                    if confidence_column:
+                        full_path = os.path.join(rule_result_dir, model_file)
+                        model_predictions = pd.read_csv(full_path)
+                        column_name = f"{dir_name}_{confidence_column}"
+                        bowpy_dataframe[column_name] = model_predictions['Predicted']
 
     return bowpy_dataframe
 
