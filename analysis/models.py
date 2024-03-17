@@ -11,8 +11,8 @@ from tensorflow.keras.callbacks import EarlyStopping
 import re
 import os
 import reader
+import edcr
 
-OPTIMAL_METRIC = 'F1 (1)'
 DUMB_MODELS = ['dumb_spikes', 'dumb_non_spikes']
 
 auc_count = 0
@@ -438,13 +438,7 @@ def edcr_evaluation_method(method, name, rule_pred, base_pred, y_test, pred_file
     return output_dict
 
 # Evaluate all models
-# TODO: create multiple .npy files with these cols: pred, corr, true_positive, false_positive, rule_result1, rule_result2 ... rule_resultn
-# pred = base model predictions
-# corr = rule predictions
-# true_positive = TP of base model pred
-# false_postive = FP of base model pred
-# rule_result_x = prediction of each model in the ensemble
-def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain):
+def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain, edcr=True):
     global auc_count
     output_dicts = []
 
@@ -536,103 +530,10 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
         save_predictions_to_file(f'Dumb_Model_{dm}', y_pred, y_test, pred_file_path)
 
     # EDCR        
-    for base_idx in range(len(rules)):  # Loop through all models as potential base models
-        base_model = rules[base_idx]
-        base_model_name = base_model[2]  
-        print(f"Base model: {base_model_name}")
-
-        # Exclude the current base model from the selection for F1, Recall, and Precision
-        f1_df = pd.DataFrame([x[4] for idx, x in enumerate(rules) if idx != base_idx])
-        sorted_f1 = list(f1_df.sort_values(by=0, ascending=False).head(5).index)
-
-        rec_df = pd.DataFrame([x[5] for idx, x in enumerate(rules) if idx != base_idx])
-        sorted_rec = list(rec_df.sort_values(by=0, ascending=False).head(5).index)
-
-        prec_df = pd.DataFrame([x[6] for idx, x in enumerate(rules) if idx != base_idx])
-        sorted_prec = list(prec_df.sort_values(by=0, ascending=False).head(5).index)
-
-        rules_index = {
-            'F1': sorted_f1,
-            'Recall': sorted_rec,
-            'Precision': sorted_prec,
-        }
-
-        # Just to clear up confusion
-        # base_model = rules[best_acc_index]
-        # base_model_pred = rules[best_acc_index][0]
-        # base_model_pred_confidence = rules[best_acc_index][1]
-        # base_model_name = rules[best_acc_index][2]
-        
-        for metric_name, metric_rule_index in rules_index.items():
-            print(f"\nEvaluating rules based on {metric_name}:")
-
-            for confident in [0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 0.95]:
-                y_pred_all = []
-
-                # Use a model (with high accuracy) as baseline and use high [OPTIMAL_METRIC] models to improve it
-                for ri in metric_rule_index:
-
-                    # Just to clear up confusion
-                    # rule_model = rules[ri]
-                    # rule_model_pred = rule_model[0]
-                    # rule_model_pred_confidence = rule_model[1]
-                    # rule_model_name = rule_model[2]
-
-                    name = "Confident " + str(confident) + "Rule " + rules[ri][2] + "for " + rules[base_idx][2]
-                    # Checking the confidence of a rule against a threshold. If it exceeds, we change the base model's prediction to '1'. 
-                    # We also aggregate these into y_pred_all for the ensemble later on.
-                    # TODO: Only apply these to predictions in the base model that are WRONG. (Detection algo needed)
-                    # TODO: Create a detection rule function that flags incorrect predictions as something else. Then we apply this rule confidence logic to flagged samples.
-                    try:
-                        y_pred1 = (rules[ri][1] > confident).astype(int)
-                        if(len(y_pred_all)):
-                            y_pred_all = np.squeeze(y_pred_all) | np.squeeze(y_pred1)
-                        else:
-                            y_pred_all = y_pred1
-
-                        # Evaluate using direct approach
-                        output_dict_direct = edcr_evaluation_method('correction', name, y_pred1, rules[base_idx][0], y_test, pred_file_path, metric_name)
-                        output_dicts.append(output_dict_direct)
-
-                        # Evaluate using detection approach
-                        output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred1, rules[base_idx][0], y_test, pred_file_path, metric_name)
-                        output_dicts.append(output_dict_detection)
-
-                    except Exception as e:
-                        print(f"Failed to evaluate {name}: {e}")
-                
-                # Use a model (with high accuracy) as baseline with ensemble to improve it
-                name = "Confident " + str(confident) + "Rule all" + "for " + rules[base_idx][2]
-                try:
-                    # Evaluate using direct approach
-                    output_dict_direct = edcr_evaluation_method('correction', name, y_pred_all, rules[base_idx][0], y_test, pred_file_path, metric_name)
-                    output_dicts.append(output_dict_direct)
-
-                    # Evaluate using detection approach
-                    output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred_all, rules[base_idx][0], y_test, pred_file_path, metric_name)
-                    output_dicts.append(output_dict_detection)
-                except Exception as e:
-                    print(f"Failed to evaluate {name}: {e}")  
-
-                # Use dumb model as baseline with ensemble to improve it
-                for dumb in DUMB_MODELS:
-                    name = "Confident " + str(confident) + "Rule all" + "for " + dumb
-                    try:
-                        pred_value = 1 if dumb == 'dumb_spikes' else 0
-                        
-                        y_pred_dumb = pd.Series([pred_value] * len(y_test))
-
-                        # Evaluate using direct approach
-                        output_dict_direct = edcr_evaluation_method('correction', name, y_pred_all, y_pred_dumb, y_test, pred_file_path, metric_name)
-                        output_dicts.append(output_dict_direct)
-
-                        # Evaluate using detection approach
-                        output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred_all, y_pred_dumb, y_test, pred_file_path, metric_name)
-                        output_dicts.append(output_dict_detection)
-                    except Exception as e:
-                        print(f"Failed to evaluate {name}: {e}")
-        
-    # After identifying the best model, save it
+    if edcr:
+        edcr_results = edcr.apply_edcr(rules, y_test, pred_file_path)
+        output_dicts.extend(edcr_results)
+      
     output_dicts = pd.DataFrame(output_dicts)
     output_dicts.to_csv(output_file_path)
     return output_dicts
