@@ -58,3 +58,4 @@ def extract_rule_confidence(model_filename, confidence_levels):
         if confidence in confidence_levels:
             return f"rule_result_conf_{confidence_str}"
     return None
+

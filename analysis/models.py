@@ -127,6 +127,66 @@ def npy_to_bowpy(base_model_file_path, base_dir, confidence_levels):
 
     return bowpy_dataframe
 
+# Function to parse model descriptor and return appropriate model architecture
+def get_model_from_descriptor(descriptor, input_shape):
+    # LSTM Model
+    if "LSTM" in descriptor:
+        num_layers = int(re.search(r"LSTM_(\d+)_layers", descriptor).group(1))
+        model = Sequential()
+        model.add(LSTM(num_layers, input_shape=input_shape, activation='relu'))
+        model.add(Dense(num_layers // 2, activation='relu'))
+        model.add(Dense(num_layers // 2, activation='relu'))
+        model.add(Dense(1, activation='sigmoid'))
+    
+    # RNN Model
+    elif "RNN" in descriptor:
+        num_units = int(re.search(r"RNN_(\d+)_units", descriptor).group(1))
+        model = Sequential()
+        model.add(SimpleRNN(num_units, input_shape=input_shape, activation='relu'))
+        model.add(Dense(num_units // 2, activation='relu'))
+        model.add(Dense(1, activation='sigmoid'))
+    
+    # CNN Model
+    elif "CNN" in descriptor and "Attention" not in descriptor:
+        num_filters, kernel_size = map(int, re.search(r"CNN_(\d+)_filters_(\d+)_kernels", descriptor).groups())
+        model = Sequential()
+        model.add(Conv1D(filters=num_filters, kernel_size=kernel_size, activation='relu', input_shape=input_shape))
+        model.add(MaxPooling1D(pool_size=2))
+        model.add(Flatten())
+        model.add(Dense(num_filters // 2, activation='relu'))
+        model.add(Dense(1, activation='sigmoid'))
+
+    # CNN with Attention Model
+    elif "CNN_Attention" in descriptor:
+        num_filters, kernel_size = map(int, re.search(r"CNN_Attention_(\d+)_filters_(\d+)_kernels", descriptor).groups())
+        model = create_acnn_model2(input_shape, 1, num_filters, kernel_size)
+    
+    else:
+        raise ValueError("Model descriptor not recognized.")
+
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
+
+# Retrain the best performing model
+def retrain_best_model(saved_model_path, X_train, y_train, X_val, y_val, X_test, y_test):
+    # Extract model descriptor from file path
+    descriptor = saved_model_path.split('/')[-1].replace('.h5', '')
+    input_shape = (X_train.shape[1], X_train.shape[2])
+    
+    # Rebuild model based on the descriptor
+    model = get_model_from_descriptor(descriptor, input_shape)
+    
+    # Retrain the model
+    early_stopping = EarlyStopping(monitor='val_auc', patience=50, restore_best_weights=True)
+    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
+    
+    # Evaluate the retrained model
+    y_pred = (model.predict(X_test) > 0.5).astype(int)
+    output = make_output_dict("Retrained Model", descriptor, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
+    output_dicts = pd.DataFrame([output])
+    
+    return output_dicts
+
 # Transformer
 def positional_encoding(length, d_model):
     def get_angles(pos, i, d_model):
@@ -493,66 +553,6 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
       
     output_dicts = pd.DataFrame(output_dicts)
     output_dicts.to_csv(output_file_path)
-    return output_dicts
-
-# Function to parse model descriptor and return appropriate model architecture
-def get_model_from_descriptor(descriptor, input_shape):
-    # LSTM Model
-    if "LSTM" in descriptor:
-        num_layers = int(re.search(r"LSTM_(\d+)_layers", descriptor).group(1))
-        model = Sequential()
-        model.add(LSTM(num_layers, input_shape=input_shape, activation='relu'))
-        model.add(Dense(num_layers // 2, activation='relu'))
-        model.add(Dense(num_layers // 2, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
-    
-    # RNN Model
-    elif "RNN" in descriptor:
-        num_units = int(re.search(r"RNN_(\d+)_units", descriptor).group(1))
-        model = Sequential()
-        model.add(SimpleRNN(num_units, input_shape=input_shape, activation='relu'))
-        model.add(Dense(num_units // 2, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
-    
-    # CNN Model
-    elif "CNN" in descriptor and "Attention" not in descriptor:
-        num_filters, kernel_size = map(int, re.search(r"CNN_(\d+)_filters_(\d+)_kernels", descriptor).groups())
-        model = Sequential()
-        model.add(Conv1D(filters=num_filters, kernel_size=kernel_size, activation='relu', input_shape=input_shape))
-        model.add(MaxPooling1D(pool_size=2))
-        model.add(Flatten())
-        model.add(Dense(num_filters // 2, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
-
-    # CNN with Attention Model
-    elif "CNN_Attention" in descriptor:
-        num_filters, kernel_size = map(int, re.search(r"CNN_Attention_(\d+)_filters_(\d+)_kernels", descriptor).groups())
-        model = create_acnn_model2(input_shape, 1, num_filters, kernel_size)
-    
-    else:
-        raise ValueError("Model descriptor not recognized.")
-
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    return model
-
-# Retrain the best performing model
-def retrain_best_model(saved_model_path, X_train, y_train, X_val, y_val, X_test, y_test):
-    # Extract model descriptor from file path
-    descriptor = saved_model_path.split('/')[-1].replace('.h5', '')
-    input_shape = (X_train.shape[1], X_train.shape[2])
-    
-    # Rebuild model based on the descriptor
-    model = get_model_from_descriptor(descriptor, input_shape)
-    
-    # Retrain the model
-    early_stopping = EarlyStopping(monitor='val_auc', patience=50, restore_best_weights=True)
-    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
-    
-    # Evaluate the retrained model
-    y_pred = (model.predict(X_test) > 0.5).astype(int)
-    output = make_output_dict("Retrained Model", descriptor, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-    output_dicts = pd.DataFrame([output])
-    
     return output_dicts
 
 

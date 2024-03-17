@@ -22,8 +22,6 @@ def evaluate_edcr(name, rule_model_pred, base_model_pred, y_test):
 
     y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
     output = models.make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), models.prior(y_test))
-
-    # Generate classification report
     return y_pred, output
 
 def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test):
