@@ -46,3 +46,15 @@ def find_matching_rule_file(base_model_file_name, rule_result_dir):
         if file.endswith(".csv") and "Rule all" in file and mapped_base_model_name in file:
             return os.path.join(rule_result_dir, file)
     return None
+
+def extract_rule_confidence(model_filename, confidence_levels):
+    """
+    Extracts the confidence level from the rule model filename if it matches the specified confidence levels.
+    """
+    parts = model_filename.split('Rule allfor')
+    if len(parts) > 1:
+        confidence_str = parts[0].split('Confident ')[-1].strip()
+        confidence = float(confidence_str)
+        if confidence in confidence_levels:
+            return f"rule_result_conf_{confidence_str}"
+    return None
