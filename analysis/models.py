@@ -414,9 +414,10 @@ def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test):
     # Use detection to flag incorrect predictions
     error_flags = base_model_pred != rule_model_pred
 
-    # Only correct the incorrect flags, if base model prediction is different from the rule model, we invert it
+
     y_pred = np.copy(base_model_pred)
-    y_pred[error_flags] = 1 - y_pred[error_flags]
+    y_pred[error_flags] = 1 - y_pred[error_flags] # flip prediction is rule says its wrong
+    # y_pred[error_flags] = rule_model_pred[error_flags] | y_pred[error_flags]    # Keep class 1 predictions, even if rule says its wrong.
 
     # y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
     output = make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), prior(y_test))

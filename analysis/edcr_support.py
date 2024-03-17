@@ -115,6 +115,9 @@ for COMMODITY in COMMODITYS:
 
 
 from imblearn.over_sampling import RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler
+
+sampler = RandomOverSampler
 
 # Prepare mixed data
 #X_mix, y_mix = data_processing.prepare_features_and_target(aggregated_df, FEATURE_COLUMNS, SPIKE_COLUMN)
@@ -127,7 +130,7 @@ X_train_mix, X_test_mix, y_train_mix, y_test_mix = train_test_split(X_mix, y_mix
 X_train_mix, X_val_mix, y_train_mix, y_val_mix = train_test_split(X_train_mix, y_train_mix, test_size=(10/70), random_state=RANDOM_STATE, shuffle=False)  # Adjusting test_size to get ~10% of the original
 
 # Balancing
-X_train_mix, y_train_mix = RandomOverSampler(random_state=RANDOM_STATE).fit_resample(X_train_mix, y_train_mix)
+X_train_mix, y_train_mix = sampler(random_state=RANDOM_STATE).fit_resample(X_train_mix, y_train_mix)
 
 # Scaling
 X_train_mix, X_test_mix, X_val_mix = data_processing.scale_features(X_train_mix, X_test_mix, X_val_mix)
@@ -169,7 +172,7 @@ X_train_price, X_test_price, y_train_price, y_test_price = train_test_split(X_pr
 X_train_price, X_val_price, y_train_price, y_val_price = train_test_split(X_train_price, y_train_price, test_size=(10/70), random_state=RANDOM_STATE, shuffle=False)
 
 # Balancing
-X_train_price, y_train_price = RandomOverSampler(random_state=RANDOM_STATE).fit_resample(X_train_price, y_train_price)
+X_train_price, y_train_price = sampler(random_state=RANDOM_STATE).fit_resample(X_train_price, y_train_price)
 
 # Scaling
 X_train_price, X_test_price, X_val_price = data_processing.scale_features(X_train_price, X_test_price, X_val_price)
