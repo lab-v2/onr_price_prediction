@@ -40,7 +40,7 @@ import numpy as np
 
 COMMODITYS = ['cobalt', 'copper', 'germanium', 'magnesium']
 #target_COMMODITY = "copper"
-target_COMMODITY = "copper"
+target_COMMODITY = "cobalt"
 WINDOW_SIZE = 20
 
 pre_features = []

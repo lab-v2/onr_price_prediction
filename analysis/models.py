@@ -479,7 +479,7 @@ def evaluate_dumb_model(y_test, model_type='non_spikes'):
     return y_pred, output_dict
 
 # Evaluate all models
-def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain, edcr=True):
+def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain, edcra=True):
     global auc_count
     output_dicts = []
 
@@ -571,7 +571,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
         save_predictions_to_file(f'Dumb_Model_{dm}', y_pred, y_test, pred_file_path)
 
     # EDCR        
-    if edcr:
+    if edcra:
         edcr_results = edcr.apply_edcr(rules, y_test, pred_file_path)
         output_dicts.extend(edcr_results)
       
