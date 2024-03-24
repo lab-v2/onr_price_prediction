@@ -18,7 +18,7 @@ import edcr
 import models2
 
 DUMB_MODELS = ['dumb_spikes', 'dumb_non_spikes']
-learning_rate = 0.01
+learning_rate = 0.0005
 auc_count = 0
 auc = tf.keras.metrics.AUC()
 

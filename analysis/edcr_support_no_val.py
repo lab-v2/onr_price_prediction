@@ -40,7 +40,7 @@ import numpy as np
 
 COMMODITYS = ['cobalt', 'copper', 'germanium', 'magnesium']
 #target_COMMODITY = "copper"
-target_COMMODITY = "magnesium"
+target_COMMODITY = "copper"
 WINDOW_SIZE = 20
 
 pre_features = []
@@ -53,7 +53,7 @@ for COMMODITY in COMMODITYS:
     PRICE_FILE_PATH = f"../volza/{COMMODITY}/{COMMODITY}_prices.csv"
     
     # Get the data
-    data = get_data(VOLZA_FILE_PATH, PRICE_FILE_PATH, window_size=20, center=False)
+    data = get_data(VOLZA_FILE_PATH, PRICE_FILE_PATH, window_size=WINDOW_SIZE, center=False)
     
     # Add Isolation Forest spikes column
     data['spikes_if'] = utils.detect_spikes_if(data, TARGET_COLUMN, contamination=0.1)
@@ -95,9 +95,9 @@ X_train_price_mix, X_test_price_mix, X_val_mix = data_processing.scale_features(
 #X_val_mix, y_val_mix = data_processing.create_sequences(X_val_mix, y_val_mix, WINDOW_SIZE)
 
 # Evaluate and create pre-trained model
-output_file_path = f'{target_COMMODITY}/test/results_test.csv'
-pred_file_path = f'{target_COMMODITY}/test/predictions/test'
-model_path = f'{target_COMMODITY}/best_model'
+output_file_path = f'{target_COMMODITY}_no_val_{WINDOW_SIZE}/test/results_test.csv'
+pred_file_path = f'{target_COMMODITY}_no_val_{WINDOW_SIZE}/test/predictions/test'
+model_path = f'{target_COMMODITY}_no_val_{WINDOW_SIZE}/best_model'
 X_train_price_mix = np.expand_dims(X_train_price_mix, axis = 2)
 X_test_price_mix = np.expand_dims(X_test_price_mix, axis = 2)
 X_val_mix = np.expand_dims(X_val_mix, axis = 2)
