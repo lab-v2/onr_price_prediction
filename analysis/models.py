@@ -149,8 +149,7 @@ def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n):
     for i in range(top_n):
         model_file = sorted_rank[i][0]
         model_predictions = sorted_rank[i][1]
-        bowpy_dataframe[f"rule{index}"] = model_predictions
-        index += 1
+        bowpy_dataframe[f"rule{i}"] = model_predictions
 
     return bowpy_dataframe
 
