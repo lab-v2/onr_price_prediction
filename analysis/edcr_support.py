@@ -40,13 +40,14 @@ import numpy as np
 
 COMMODITYS = ['cobalt', 'copper', 'germanium', 'magnesium']
 #target_COMMODITY = "copper"
-target_COMMODITY = "cobalt"
+target_COMMODITY = "copper"
 WINDOW_SIZE = 20
 
 pre_features = []
 pre_labels = []
 tar_features = []
 tar_labels = []
+
 for COMMODITY in COMMODITYS:
     VOLZA_FILE_PATH = f"../volza/{COMMODITY}/{COMMODITY}.csv"
     PRICE_FILE_PATH = f"../volza/{COMMODITY}/{COMMODITY}_prices.csv"
@@ -66,7 +67,7 @@ for COMMODITY in COMMODITYS:
     pre_features.extend(features)
     pre_labels.extend(labels)
 
-# TRAIN_SIZE = 0.5
+
 
 
 # In[3]:

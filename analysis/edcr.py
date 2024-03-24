@@ -24,32 +24,43 @@ def evaluate_edcr(name, rule_model_pred, base_model_pred, y_test):
     output = models.make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), models.prior(y_test))
     return y_pred, output
 
-def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, y_test):
+def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test):
     print(rule_model_pred.shape,type(rule_model_pred))
     print(base_model_pred.shape,type(base_model_pred))
 
     rule_model_pred = np.squeeze(rule_model_pred)
     base_model_pred = np.squeeze(base_model_pred)
+    rule_model_pred_conf = np.squeeze(rule_model_pred_conf)
+    base_model_pred_conf = np.squeeze(base_model_pred_conf)
 
-    # Use detection to flag incorrect predictions
-    error_flags = base_model_pred != rule_model_pred
+    # for change condition 2
+    confidence_difference_threshold = 0.3
 
+    # Only flip 0 -> 1, if even base model "incorrectly" predicts 1, we keep it
+    change_condition_0 = base_model_pred != rule_model_pred
+
+    # Only flip 0 -> 1, if rule says its 1 AND base model's confidence is low
+    change_condition_1 = (rule_model_pred == 1) & (base_model_pred == 0) & (base_model_pred_conf > 0.25)
+
+    # Only flip 0 -> 1, if rule says its 1 AND if rule model is significantly more confident than base model
+    change_condition_2 = (rule_model_pred == 1) & (base_model_pred == 0) & (rule_model_pred - base_model_pred > confidence_difference_threshold)
 
     y_pred = np.copy(base_model_pred)
-    # y_pred[error_flags] = 1 - y_pred[error_flags] # flip prediction is rule says its wrong
-    y_pred[error_flags] = rule_model_pred[error_flags] | y_pred[error_flags]    # Keep class 1 predictions, even if rule says its wrong.
+    # y_pred[change_condition_0] = 1 - y_pred[change_condition_0] # flip prediction is rule says its wrong
 
-    # y_pred = np.squeeze(rule_model_pred) | np.squeeze(base_model_pred)
+    y_pred[change_condition_1] = 1
     output = models.make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), models.prior(y_test))
 
     # Generate classification report
     return y_pred, output
 
-def edcr_evaluation_method(method, name, rule_pred, base_pred, y_test, pred_file_path, metric_name):
+# def edcr_evaluation_method(method, name, rule_pred, base_pred, y_test, pred_file_path, metric_name):
+def edcr_evaluation_method(method, name, rule_pred, base_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path, metric_name):
     if method == 'correction':
         y_pred, output_dict = evaluate_edcr(name, rule_pred, base_pred, y_test)
     elif method == 'detection_correction':
-        y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, y_test)
+        # y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, y_test)
+        y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, rule_model_pred_conf, base_model_pred_conf, y_test)
     else:
         raise ValueError("Unknown method specified")
 
@@ -86,6 +97,9 @@ def apply_edcr(rules, y_test, pred_file_path):
         # base_model_pred = rules[best_acc_index][0]
         # base_model_pred_confidence = rules[best_acc_index][1]
         # base_model_name = rules[best_acc_index][2]
+        base_model_pred = rules[base_idx][0]
+        base_model_pred_conf = rules[base_idx][1]
+        base_model_name = rules[base_idx][2]
         
         for metric_name, metric_rule_index in rules_index.items():
             print(f"\nEvaluating rules based on {metric_name}:")
@@ -101,21 +115,23 @@ def apply_edcr(rules, y_test, pred_file_path):
                     # rule_model_pred = rule_model[0]
                     # rule_model_pred_confidence = rule_model[1]
                     # rule_model_name = rule_model[2]
+                    rule_model_pred_conf = rules[ri][1]
+                    rule_model_name = rules[ri][2]
 
-                    name = "Confident " + str(confident) + "Rule " + rules[ri][2] + "for " + rules[base_idx][2]
+                    name = "Confident " + str(confident) + "Rule " + rule_model_name + "for " + base_model_name
                     try:
-                        y_pred1 = (rules[ri][1] > confident).astype(int)
+                        y_pred1 = (rule_model_pred_conf > confident).astype(int)
                         if(len(y_pred_all)):
                             y_pred_all = np.squeeze(y_pred_all) | np.squeeze(y_pred1)
                         else:
                             y_pred_all = y_pred1
 
                         # Evaluate using correction rule
-                        output_dict_direct = edcr_evaluation_method('correction', name, y_pred1, rules[base_idx][0], y_test, pred_file_path, metric_name)
+                        output_dict_direct = edcr_evaluation_method('correction', name, y_pred1, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path, metric_name)
                         output_dicts.append(output_dict_direct)
 
                         # Evaluate using detection + correction rule
-                        output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred1, rules[base_idx][0], y_test, pred_file_path, metric_name)
+                        output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred1, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path, metric_name)
                         output_dicts.append(output_dict_detection)
 
                     except Exception as e:
@@ -123,14 +139,14 @@ def apply_edcr(rules, y_test, pred_file_path):
                 
                 # Use a model as baseline with ensemble to improve it
                 # Perhaps scrap this?
-                name = "Confident " + str(confident) + "Rule all" + "for " + rules[base_idx][2]
+                name = "Confident " + str(confident) + "Rule all" + "for " + base_model_name
                 try:
                     # Evaluate using correction rule
-                    output_dict_direct = edcr_evaluation_method('correction', name, y_pred_all, rules[base_idx][0], y_test, pred_file_path, metric_name)
+                    output_dict_direct = edcr_evaluation_method('correction', name, y_pred_all, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path, metric_name)
                     output_dicts.append(output_dict_direct)
 
                     # Evaluate using detection + correction rule
-                    output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred_all, rules[base_idx][0], y_test, pred_file_path, metric_name)
+                    output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred_all, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path, metric_name)
                     output_dicts.append(output_dict_detection)
                 except Exception as e:
                     print(f"Failed to evaluate {name}: {e}")  
@@ -144,11 +160,11 @@ def apply_edcr(rules, y_test, pred_file_path):
                         y_pred_dumb = pd.Series([pred_value] * len(y_test))
 
                         # Evaluate using correction rule
-                        output_dict_direct = edcr_evaluation_method('correction', name, y_pred_all, y_pred_dumb, y_test, pred_file_path, metric_name)
+                        output_dict_direct = edcr_evaluation_method('correction', name, y_pred_all, y_pred_dumb, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path, metric_name)
                         output_dicts.append(output_dict_direct)
 
                         # Evaluate using detection + correction rule
-                        output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred_all, y_pred_dumb, y_test, pred_file_path, metric_name)
+                        output_dict_detection = edcr_evaluation_method('detection_correction', name, y_pred_all, y_pred_dumb, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path, metric_name)
                         output_dicts.append(output_dict_detection)
                     except Exception as e:
                         print(f"Failed to evaluate {name}: {e}")

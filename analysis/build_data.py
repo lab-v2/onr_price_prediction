@@ -66,9 +66,10 @@ def get_data(volza_file_path, price_file_path, window_size,center):
     # Combining dataframes
     prices_pd = prices_pd.set_index("Date")
     ais_popular_pd = ais_popular_pd.set_index("Date")
-    date_wise_volza = date_wise_volza.join(ais_popular_pd, how="left").fillna(
-        method=FILL_METHOD
-    )
+    
+    # date_wise_volza = date_wise_volza.join(ais_popular_pd, how="left").fillna(
+    #     method=FILL_METHOD
+    # )
     aggregated_df = date_wise_volza.join(prices_pd, how="left").fillna(method=FILL_METHOD)
     aggregated_df = aggregated_df.merge(
         brent_df[[DATE_COLUMN, BRENT_OIL_COLUMN]], on="Date", how="left"

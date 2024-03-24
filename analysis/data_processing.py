@@ -14,6 +14,12 @@ def scale_features(X_train, X_test, X_val):
     X_val_scaled = scaler.fit_transform(X_val)
     return X_train_scaled, X_test_scaled, X_val_scaled
 
+def scale_features_no_val(X_train, X_test):
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    return X_train_scaled, X_test_scaled
+
 # Function to create sequences from the scaled data
 def create_sequences(X_scaled, y, window_size):
     X_sequences, y_sequences = [], []
