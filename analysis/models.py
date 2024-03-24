@@ -139,12 +139,11 @@ def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n):
     rank = []
     for model_file in os.listdir(rule_result_dir):
         if model_file.endswith(".csv") and not "Rule all" in model_file and mapped_base_model_name in model_file:
-            
+            print(model_file)
             model_predictions = pd.read_csv(os.path.join(rule_result_dir, model_file))
-            rank += [(model_file, model_predictions['Predicted'].values, classification_report(bowpy_dataframe['corr'], model_predictions['Predicted'].values, output_dict=True)['1']['f1-score'])]
+            rank += [(model_file, model_predictions['Predicted'], classification_report(model_predictions['True'], model_predictions['Predicted'], output_dict=True)['1']['f1-score'])]
             index += 1
     sorted_rank = sorted(rank, key=lambda x: x[2], reverse=True)
-    print(sorted_rank)
 
     for i in range(top_n):
         model_file = sorted_rank[i][0]
