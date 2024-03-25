@@ -21,6 +21,8 @@ def map_base_model_to_rule_name(base_model_file_name):
     elif 'RNN' in base_model_file_name:
         units = base_model_file_name.split('_')[1]
         return f"RNN_{units}"
+    elif 'Dumb_Model' in base_model_file_name:
+        return 'Dumb_Model_non_spikes'
     else:
         return "Unknown"
     
