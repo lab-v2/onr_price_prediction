@@ -8,13 +8,18 @@ from tensorflow.keras.models import Model, Sequential
 from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
 from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV
+from tensorflow.keras.optimizers import Adam
 import re
 import os
 import reader
 import edcr
+import models2
+import models1
 
 DUMB_MODELS = ['dumb_spikes', 'dumb_non_spikes']
-
+learning_rate = 0.0001
 auc_count = 0
 auc = tf.keras.metrics.AUC()
 
@@ -32,7 +37,7 @@ def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
         if y_pred.ndim > 1:
             # For multi-dimensional y_pred, create a DataFrame with a column for each class/label
             predictions_df = pd.DataFrame(y_pred, columns=[f'Predicted_{i}' for i in range(y_pred.shape[1])])
-            predictions_df['True'] = y_test  # Assuming y_test is correctly shaped or is a single class label
+            predictions_df['True'] = y_test  
         else:
             # For 1-dimensional y_pred, proceed as before
             predictions_df = pd.DataFrame({'Predicted': y_pred, 'True': y_test})
@@ -41,11 +46,11 @@ def save_predictions_to_file(model_name, y_pred, y_test, directory_path):
         predictions_df.to_csv(csv_filename, index=False)
 
         # Optionally, save y_pred with original shape to NPY if it's crucial to preserve multi-dimensionality
-        npy_filename = f"{directory_path}/{model_name}_predictions.npy"
-        np.save(npy_filename, y_pred)
+        # npy_filename = f"{directory_path}/{model_name}_predictions.npy"
+        # np.save(npy_filename, y_pred)
 
         print(f"Predictions saved to CSV file: {csv_filename}")
-        print(f"Predictions saved to NPY file: {npy_filename}")
+        # print(f"Predictions saved to NPY file: {npy_filename}")
     except Exception as e:
         print(f"2. Failed to save predictions for {model_name}: {e}")
 
@@ -116,45 +121,6 @@ def npy_to_based_bowpy(base_model_file_path, rule_result_dir, confidence_levels)
 
     return bowpy_dataframe
 
-def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n):
-    """
-    Merges base model predictions with the corresponding rule results for specified confidence levels.
-    """
-    # Read the base model predictions
-    bowpy_dataframe = pd.read_csv(base_model_file_path)
-    bowpy_dataframe.rename(columns={"Predicted": "pred", "True": "corr"}, inplace=True)
-    bowpy_dataframe['true_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 1 else 0, axis=1)
-    bowpy_dataframe['false_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 0 else 0, axis=1)
-
-    base_model_name = os.path.basename(base_model_file_path).replace("_predictions.csv", "")
-    mapped_base_model_name = reader.map_base_model_to_rule_name(base_model_name)
-    print(mapped_base_model_name)
-
-    # Iterate through the directory and add each matching rule's predictions as a new column
-    index = 0
-    for model_file in os.listdir(rule_result_dir):
-        if model_file.endswith(".csv") and not "Rule all" in model_file and mapped_base_model_name in model_file:
-            index += 1
-
-    rank = []
-    index = 0
-    for model_file in os.listdir(rule_result_dir):
-        if model_file.endswith(".csv") and not "Rule all" in model_file and mapped_base_model_name in model_file:
-            # print(model_file)
-            model_predictions = pd.read_csv(os.path.join(rule_result_dir, model_file))
-            if len(model_predictions['Predicted']) == len(bowpy_dataframe['pred']):
-                rank += [(model_file, model_predictions['Predicted'], classification_report(model_predictions['True'], model_predictions['Predicted'], output_dict=True)['1']['f1-score'])]
-                index += 1
-    sorted_rank = sorted(rank, key=lambda x: x[2], reverse=True)
-    
-    top_n = min(top_n, index)
-    for i in range(top_n):
-        model_file = sorted_rank[i][0]
-        model_predictions = sorted_rank[i][1]
-        bowpy_dataframe[f"rule{i}"] = model_predictions
-
-    return bowpy_dataframe
-
 def npy_to_bowpy(base_model_file_path, base_dir, confidence_levels, algo):
     """
     Merges base model predictions with the corresponding rule results for specified confidence levels across multiple directories.
@@ -192,6 +158,7 @@ def npy_to_bowpy(base_model_file_path, base_dir, confidence_levels, algo):
 
 # Function to parse model descriptor and return appropriate model architecture
 def get_model_from_descriptor(descriptor, input_shape):
+    adam_optimizer = Adam(learning_rate=learning_rate)
     # LSTM Model
     if "LSTM" in descriptor:
         num_layers = int(re.search(r"LSTM_(\d+)_layers", descriptor).group(1))
@@ -227,7 +194,7 @@ def get_model_from_descriptor(descriptor, input_shape):
     else:
         raise ValueError("Model descriptor not recognized.")
 
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=adam_optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
 # Retrain the best performing model
@@ -310,206 +277,30 @@ def evaluate_transformer(num_encoder_layers,length,d_model,X_train, y_train, X_t
     return y_pred, output, y_pred_ori
 
 
-#LSTM Model
-def evaluate_lstm(num_layers: int, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path):
-    global auc_count
-    # Build the LSTM model
-    if pretrain:
-        model = load_model(model_path)
-    else:
-        model = Sequential()
-        model.add(LSTM(num_layers, input_shape=(X_train.shape[1], X_train.shape[2]), activation='relu'))
-        #model.add(LSTM(num_layers, activation='relu'))
-        model.add(Dense(num_layers // 2, activation='relu'))
-        model.add(Dense(num_layers // 2, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[auc])
+# #SVM Model
+# def evaluate_svm(param_grid, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path):
+#     X_train = X_train.reshape(X_train.shape[0], -1)
+#     y_train = y_train.reshape(y_train.shape[0], -1)
 
-        # EarlyStopping callback
-    if auc_count == 0:
-        mv = f"val_auc"
-    else:
-        mv = f"val_auc{auc_count}"
-    early_stopping = EarlyStopping(monitor="val_loss", patience=50, restore_best_weights=True)
-    auc_count += 1
+#     # Initialize the SVM model
+#     model = SVC(probability=True)
+#     grid_search = GridSearchCV(model, param_grid, scoring='precision', cv=5, verbose=0)
+#     try:
+#         grid_search.fit(X_train, y_train)
+#     except Exception as e:
+#         print(f'flop: {e}')
 
-    # Train the model with validation data
-    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
+#     best_model = grid_search.best_estimator_
 
-    # Predictions
-    y_pred = (model.predict(X_test) > 0.5).astype(int)
-    y_pred_ori = model.predict(X_test)
-
-    # Assuming make_output_dict and prior are defined elsewhere in your code
-    output = make_output_dict("LSTM", f"{num_layers} layers", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-    return y_pred, output, y_pred_ori, output['Recall (1)'], model
-
-
-# Build RNN
-def evaluate_rnn(num_units: int, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path):
-    global auc_count
-    # Build the RNN model
-    if pretrain:
-        model = load_model(model_path)
-    else:
-        model = Sequential()
-        model.add(SimpleRNN(num_units, input_shape=(X_train.shape[1], X_train.shape[2]), activation='relu'))
-        #model.add(SimpleRNN(num_units, activation='relu'))
-        model.add(Dense(int(num_units/2), activation='relu'))  # Ensure num_units/2 is cast to int for layer units
-        model.add(Dense(1, activation='sigmoid'))
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[auc])
-
-    # EarlyStopping callback
-    if auc_count == 0:
-        mv = f"val_auc"
-    else:
-        mv = f"val_auc{auc_count}"
-    early_stopping = EarlyStopping(monitor= 'val_loss', patience=50, restore_best_weights=True)
-    auc_count += 1
-
-
-    # Train the model with validation data
-    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
-
-    # Predictions
-    y_pred = (model.predict(X_test) > 0.5).astype(int)
-    y_pred_ori = model.predict(X_test)
-
-    # Assuming make_output_dict and prior are defined elsewhere in your code
-    output = make_output_dict("RNN", f"{num_units} units", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-    return y_pred, output, y_pred_ori, output['Recall (1)'], model
-
-# Build the CNN model
-def evaluate_cnn(num_filters: int, kernel_size: int, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path):
-    global auc_count
-
-    if pretrain:
-        model = load_model(model_path)
-    else:
-        model = Sequential()
-        model.add(Conv1D(filters=num_filters, kernel_size=kernel_size, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])))
-        #model.add(Conv1D(filters=num_filters, kernel_size=kernel_size, activation='relu'))
-        model.add(MaxPooling1D(pool_size=2))
-        model.add(Flatten())
-        model.add(Dense(num_filters/2, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[auc])
-
-    # EarlyStopping callback
-    if auc_count == 0:
-        mv = f"val_auc"
-    else:
-        mv = f"val_auc{auc_count}"
-    early_stopping = EarlyStopping(monitor= 'val_loss', patience=50, restore_best_weights=True)
-    auc_count += 1
-
-    # Train the model with validation data
-    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
-
-    # Predictions
-    y_pred = (model.predict(X_test) > 0.5).astype(int)
-    y_pred_ori = model.predict(X_test)
-
-    output = make_output_dict("CNN", f"{num_filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-
-    # Generate classification report
-    return y_pred, output, y_pred_ori, output['Recall (1)'], model
-
-# Attention CNN
-def create_acnn_model(input_shape, num_classes, filters, kernel_size):
-    inputs = tf.keras.Input(shape=input_shape)
-
-    # CNN layers
-    conv1 = Conv1D(filters, kernel_size=kernel_size, activation='relu')(inputs)
-    pool1 = MaxPooling1D(pool_size=2)(conv1)
-
-    # Calculate the new shape for dynamic reshaping
-    conv_shape = conv1.shape.as_list()
-    new_shape = (-1, conv_shape[1] * conv_shape[2] // 2)
-
-    # Reshape for attention
-    reshape = Reshape(new_shape)(pool1)
-
-    # Attention mechanism
-    attention = Attention()([reshape, reshape])
-
-    # Flatten for fully connected layers
-    flatten = Flatten()(attention)
-
-    # Fully connected layers
-    dense1 = Dense(128, activation='relu')(flatten)
-    dropout = Dropout(0.5)(dense1)
-    outputs = Dense(num_classes, activation='softmax')(dropout)
-
-    model = Model(inputs=inputs, outputs=outputs)
-
-    return model
-
-def evaluate_attention_cnn(filters, kernel_size, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path):
-    if pretrain:
-        model = load_model(model_path)
-    else:
-        model = create_acnn_model(X_train.shape[1:], 2, filters, kernel_size)
-        #model = create_acnn_model(X_train.shape, 2, filters, kernel_size)
-        model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=[auc])
-    # EarlyStopping callback
-    early_stopping = EarlyStopping(monitor=f'val_loss', patience=50, restore_best_weights=True)
-
-    # Train the model with validation data
-    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
-    y_pred = model.predict(X_test)
-    y_pred_ori = model.predict(X_test)
-
-    output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True), prior(y_test))
-    return y_pred, output, y_pred_ori, output['Recall (1)'], model
-
-# Trying out a different implementation of ACNN
-def create_acnn_model2(input_shape, num_classes, filters, kernel_size):
-    inputs = Input(shape=input_shape)
-
-    # CNN layers
-    conv1 = Conv1D(filters, kernel_size=kernel_size, activation='relu', padding='same')(inputs)
-    pool1 = MaxPooling1D(pool_size=2, padding='same')(conv1)
-    conv1 = Conv1D(filters*2, kernel_size=kernel_size, activation='relu', padding='same')(inputs)
-
-    # Attention mechanism applied directly on the pooled output, preserving the temporal dimension
-    attention_output = Attention()([pool1, pool1])
-
-    # Flatten for fully connected layers
-    flatten = Flatten()(attention_output)
-
-    # Fully connected layers
-    dense1 = Dense(128, activation='relu')(flatten)
-    dropout = Dropout(0.5)(dense1)
-    outputs = Dense(num_classes, activation='softmax')(dropout)
-
-    model = Model(inputs=inputs, outputs=outputs)
-
-    return model
-
-def evaluate_attention_cnn2(filters, kernel_size, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path):
-    #auc = tf.keras.metrics.AUC()
-    if pretrain:
-        model = load_model(model_path)
-    else:
-        model = create_acnn_model(X_train.shape[1:], 2, filters, kernel_size)
-        #model = create_acnn_model(X_train.shape, 2, filters, kernel_size)
-        #model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=[auc])
-        model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=["accuracy"])
-        
-    # EarlyStopping callback
-    #early_stopping = EarlyStopping(monitor=f'val_{auc.name}', patience=10, restore_best_weights=True)
-    early_stopping = EarlyStopping(monitor=f'val_loss', patience=50, restore_best_weights=True)
-
-    # Train the model with validation data
-    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
-    y_pred = model.predict(X_test)
     
-    output = make_output_dict("CNN with Attention", f"{filters} filters, kernel size {kernel_size}", classification_report(y_test, y_pred.argmax(axis=1), output_dict=True), prior(y_test))
-    y_pred_ori = y_pred[:,1]
-    y_pred = y_pred.argmax(axis=1)
-    #y_pred_ori = y_pred
-    return y_pred, output, y_pred_ori, output['Recall (1)'], model
+#     # Predictions with the best model
+#     y_pred_ori = best_model.predict_proba(X_test)[:, 1]
+#     y_pred = (y_pred_ori > 0.5).astype(int)
+
+#     best_params_str = ', '.join(f"{key}: {val}" for key, val in grid_search.best_params_.items())
+
+#     output = make_output_dict("SVM",best_params_str, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
+#     return y_pred, output, y_pred_ori, output['Recall (1)'], best_model
 
 def evaluate_dumb_model(y_test, model_type='non_spikes'):
     y_pred = np.ones(len(y_test), dtype=int) if model_type == 'spikes' else np.zeros(len(y_test), dtype=int)
@@ -518,28 +309,31 @@ def evaluate_dumb_model(y_test, model_type='non_spikes'):
     return y_pred, output_dict
 
 # Evaluate all models
-def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain, edcr=True):
+def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain, edcra=True, val=True):
     global auc_count
     output_dicts = []
-
-    # Picking best Model
     
     # FNN
     rules = []
     results = []
     auc_count = 0
 
+    pred_confidence_path = f"{pred_file_path}_confidence"
+
+
     # LSTM
     for layers in [256, 128, 64, 32]:
         try: 
             model_descriptor = f"LSTM_{layers}_layers"
             model_path = f'{saved_model_path}/{model_descriptor}.h5'
-            pred_confidence_path = f"{pred_file_path}_confidence"
-            y_pred, output_dict, y_pred_lstm, acc, model = evaluate_lstm(layers, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
+            if val:
+                y_pred, output_dict, y_pred_lstm, model = models1.evaluate_lstm(layers, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
+            else:
+                y_pred, output_dict, y_pred_lstm, model = models2.evaluate_lstm(layers, X_train, y_train, X_test, y_test, pretrain, model_path)
             rules.append([y_pred, y_pred_lstm, f"LSTM_{layers}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
             output_dicts.append(output_dict)
-            save_predictions_to_file(f"LSTM_{layers}_layers", y_pred, y_test, pred_file_path)
-            save_predictions_to_file(f"LSTM_{layers}_layers", y_pred_lstm, y_test, pred_confidence_path)
+            save_predictions_to_file(model_descriptor, y_pred, y_test, pred_file_path)
+            save_predictions_to_file(model_descriptor, y_pred_lstm, y_test, pred_confidence_path)
 
             # Check if this model has the best accuracy so far
             print(output_dict)
@@ -553,12 +347,15 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             try:
                 model_descriptor = f"CNN_Attention_{filter}_filters_{kernel}_kernels"
                 model_path = f'{saved_model_path}/{model_descriptor}.h5'
-                y_pred, output_dict, y_pred_cnna, acc, model  = evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path) # Switch this later?
+                if val:
+                    y_pred, output_dict, y_pred_cnna, model  = models1.evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path) # Switch this later?
+                else:
+                    y_pred, output_dict, y_pred_cnna, model  = models2.evaluate_attention_cnn2(filter, kernel, X_train, y_train, X_test, y_test, pretrain, model_path) # Switch this later?
                 #rules.append([y_pred_cnna, f"CNNA_{filter}_{kernel}"]) 
                 rules.append([y_pred, y_pred_cnna, f"CNNA_{filter}_{kernel}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
                 output_dicts.append(output_dict)
-                save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
-                save_predictions_to_file(f"CNN_Attention_{filter}_filters_{kernel}_kernels", y_pred_cnna, y_test, pred_confidence_path)
+                save_predictions_to_file(model_descriptor, y_pred, y_test, pred_file_path)
+                save_predictions_to_file(model_descriptor, y_pred_cnna, y_test, pred_confidence_path)
 
                 # Check if this model has the best accuracy so far
                 print(f"CNN_Attention_{filter}_filters_{kernel}_kernels",output_dict)
@@ -570,12 +367,15 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
         try: 
             model_descriptor = f"RNN_{units}_units"
             model_path = f'{saved_model_path}/{model_descriptor}.h5'
-            y_pred, output_dict, y_pred_rnn, acc, model  = evaluate_rnn(units, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
+            if val:
+                y_pred, output_dict, y_pred_rnn, model  = models1.evaluate_rnn(units, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
+            else:
+                y_pred, output_dict, y_pred_rnn, model  = models2.evaluate_rnn(units, X_train, y_train, X_test, y_test, pretrain, model_path)
             #rules.append([y_pred_rnn, f"RNN_{units}"]) 
             rules.append([y_pred, y_pred_rnn, f"RNN_{units}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
             output_dicts.append(output_dict)
-            save_predictions_to_file(f"RNN_{units}_units", y_pred, y_test, pred_file_path)
-            save_predictions_to_file(f"RNN_{units}_units", y_pred_rnn, y_test, pred_confidence_path)
+            save_predictions_to_file(model_descriptor, y_pred, y_test, pred_file_path)
+            save_predictions_to_file(model_descriptor, y_pred_rnn, y_test, pred_confidence_path)
         
             # Check if this model has the best accuracy so far
             print(f"RNN_{units}_units:",output_dict)
@@ -589,12 +389,15 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
             try:
                 model_descriptor = f"CNN_{filter}_filters_{kernel}_kernels"
                 model_path = f'{saved_model_path}/{model_descriptor}.h5'
-                y_pred, output_dict, y_pred_cnn, acc, model  = evaluate_cnn(filter, kernel, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
+                if val:
+                    y_pred, output_dict, y_pred_cnn, model  = models1.evaluate_cnn(filter, kernel, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
+                else:
+                    y_pred, output_dict, y_pred_cnn, model  = models2.evaluate_cnn(filter, kernel, X_train, y_train, X_test, y_test, pretrain, model_path)
                 #rules.append([y_pred_cnn, f"CNN_{filter}_{kernel}"]) 
                 rules.append([y_pred, y_pred_cnn, f"CNN_{filter}_{kernel}", output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']]) 
                 output_dicts.append(output_dict)
-                save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred, y_test, pred_file_path)
-                save_predictions_to_file(f"CNN_{filter}_filters_{kernel}_kernels", y_pred_cnn, y_test, pred_confidence_path)
+                save_predictions_to_file(model_descriptor, y_pred, y_test, pred_file_path)
+                save_predictions_to_file(model_descriptor, y_pred_cnn, y_test, pred_confidence_path)
 
 
                 # Check if this model has the best accuracy so far
@@ -610,13 +413,11 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
         save_predictions_to_file(f'Dumb_Model_{dm}', y_pred, y_test, pred_file_path)
 
     # EDCR        
-    if edcr:
+    if edcra:
         edcr_results = edcr.apply_edcr(rules, y_test, pred_file_path)
         output_dicts.extend(edcr_results)
       
     output_dicts = pd.DataFrame(output_dicts)
     output_dicts.to_csv(output_file_path)
     return output_dicts
-
-
     
