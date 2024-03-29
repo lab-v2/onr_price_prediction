@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import IsolationForest
 import pandas as pd
 import numpy as np
+from collections import deque
 
 # Only keep rows where we have usable quantity units (kg, ton) and standardizing it.
 def convert_to_kg(df, quantity_col='Std. Quantity', unit_col='Std. Unit'):
@@ -174,4 +175,54 @@ def plot_prices(df, column='spikes', title='Price Spike chart'):
     plt.show()
 
 
+# ============================= streaming spike labelling ============================== #
+def initialize_rolling_stats(window_size):
+    """Initialize the state for rolling statistics."""
+    return {
+        'rolling_window': deque(maxlen=window_size),
+        'sum_window': 0,
+        'sum_sq_window': 0,
+        'window_size': window_size
+    }
 
+def update_rolling_stats(new_value, state):
+    """Update rolling statistics with a new value and return the updated state."""
+    rolling_window, sum_window, sum_sq_window, window_size = \
+        state['rolling_window'], state['sum_window'], state['sum_sq_window'], state['window_size']
+    
+    if len(rolling_window) == window_size:
+        oldest_value = rolling_window.popleft()
+        sum_window -= oldest_value
+        sum_sq_window -= oldest_value**2
+
+    rolling_window.append(new_value)
+    sum_window += new_value
+    sum_sq_window += new_value**2
+
+    mean = sum_window / len(rolling_window)
+    variance = (sum_sq_window / len(rolling_window)) - mean**2
+    std_dev = max(0, variance)**0.5  # Ensure non-negative
+    
+    updated_state = {
+        'rolling_window': rolling_window,
+        'sum_window': sum_window,
+        'sum_sq_window': sum_sq_window,
+        'window_size': window_size
+    }
+    
+    return mean, std_dev, updated_state
+
+def detect_spikes_streaming(df, column, window_size, SPIKES_THRESHOLD=2, center=False):
+    """Detect spikes in df in a streaming-like manner."""
+    state = initialize_rolling_stats(window_size)
+    spikes = []
+
+    for value in df[column]:
+        mean, std_dev, state = update_rolling_stats(value, state)
+        if std_dev == 0:  # Avoid division by zero
+            spike = 0
+        else:
+            spike = int(abs(value - mean) > SPIKES_THRESHOLD * std_dev)
+        spikes.append(spike)
+    
+    return pd.Series(spikes, index=df.index)
