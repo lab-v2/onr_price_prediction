@@ -38,9 +38,9 @@ import numpy as np
 # In[2]:
 
 
-COMMODITYS = ['cobalt', 'copper', 'germanium', 'magnesium']
+COMMODITYS = ['cobalt', 'copper', 'germanium', 'magnesium', 'nickel']
 #target_COMMODITY = "copper"
-target_COMMODITY = "germanium"
+target_COMMODITY = "nickel"
 WINDOW_SIZE = 20
 
 pre_features = []
