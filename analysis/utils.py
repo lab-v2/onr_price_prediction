@@ -175,54 +175,26 @@ def plot_prices(df, column='spikes', title='Price Spike chart'):
     plt.show()
 
 
-# ============================= streaming spike labelling ============================== #
-def initialize_rolling_stats(window_size):
-    """Initialize the state for rolling statistics."""
-    return {
-        'rolling_window': deque(maxlen=window_size),
-        'sum_window': 0,
-        'sum_sq_window': 0,
-        'window_size': window_size
-    }
-
-def update_rolling_stats(new_value, state):
-    """Update rolling statistics with a new value and return the updated state."""
-    rolling_window, sum_window, sum_sq_window, window_size = \
-        state['rolling_window'], state['sum_window'], state['sum_sq_window'], state['window_size']
-    
-    if len(rolling_window) == window_size:
-        oldest_value = rolling_window.popleft()
-        sum_window -= oldest_value
-        sum_sq_window -= oldest_value**2
-
-    rolling_window.append(new_value)
-    sum_window += new_value
-    sum_sq_window += new_value**2
-
-    mean = sum_window / len(rolling_window)
-    variance = (sum_sq_window / len(rolling_window)) - mean**2
-    std_dev = max(0, variance)**0.5  # Ensure non-negative
-    
-    updated_state = {
-        'rolling_window': rolling_window,
-        'sum_window': sum_window,
-        'sum_sq_window': sum_sq_window,
-        'window_size': window_size
-    }
-    
-    return mean, std_dev, updated_state
-
-def detect_spikes_streaming(df, column, window_size, SPIKES_THRESHOLD=2, center=False):
-    """Detect spikes in df in a streaming-like manner."""
-    state = initialize_rolling_stats(window_size)
+# ============================= spike labelling shift by 1 ============================== #
+def detect_spikes_shift(df, column, window_size, SPIKES_THRESHOLD=2, present=False):
     spikes = []
+    
+    # If not including the present, shift the column values down by one
+    if not present:
+        shifted_column = df[column].shift(1)
+    else:
+        shifted_column = df[column]
 
-    for value in df[column]:
-        mean, std_dev, state = update_rolling_stats(value, state)
-        if std_dev == 0:  # Avoid division by zero
-            spike = 0
+    # Calculate rolling stats
+    moving_avg = shifted_column.rolling(window=window_size, min_periods=1).mean()
+    std_dev = shifted_column.rolling(window=window_size, min_periods=1).std()
+
+    # Detect spikes
+    for actual_value, mean, sd in zip(df[column], moving_avg, std_dev):
+        if sd == 0:  # Avoid division by zero
+            spikes.append(0)
         else:
-            spike = int(abs(value - mean) > SPIKES_THRESHOLD * std_dev)
-        spikes.append(spike)
+            spikes.append(int(abs(actual_value - mean) > SPIKES_THRESHOLD * sd))
     
     return pd.Series(spikes, index=df.index)
+
