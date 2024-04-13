@@ -209,7 +209,9 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
 
     # Filtering rules and applying F1 threshold
     rule_index = 0
-    excluded = 0
+    ablation_filter = 0
+    f1_filter = 0
+    scuffed_filter = 0
     for model_file in os.listdir(rule_result_dir):
         if model_file.endswith(".csv") and "Rule all" not in model_file and mapped_base_model_name in model_file:
             model_details = model_file.split('Rule')[1].split('for')[0].strip()
@@ -219,16 +221,21 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
             # print('2', len(bowpy_dataframe['pred']))
             if len(model_predictions['Predicted']) == len(bowpy_dataframe['pred']):
                 f1_score = classification_report(model_predictions['True'], model_predictions['Predicted'], output_dict=True)['1']['f1-score']
-                print('f1', f1_score)
                 if any(excl in model_details for excl in exclude_models):
-                    excluded += 1
-                    print(f"Excluded model: {model_details}, F1 Score: {f1_score}")
+                    ablation_filter += 1
+                    # print(f"Excluded model: {model_details}, F1 Score: {f1_score}")
                     continue
                 if f1_score >= threshold:
                     bowpy_dataframe[f"rule{rule_index}"] = model_predictions['Predicted']
                     rule_index += 1
+                else: 
+                    f1_filter += 1
+            else:
+                scuffed_filter += 1
 
-    print (f'Excluded {excluded} rules')
+    print (f'Excluded {f1_filter} rules due to F1 filtering')
+    print (f'Excluded {ablation_filter} rules due to model filtering')
+    print (f'Excluded {scuffed_filter} rules due to problematic formatting')
     return bowpy_dataframe
 
 # Function to parse model descriptor and return appropriate model architecture
