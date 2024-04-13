@@ -179,7 +179,7 @@ def plot_prices(df, column='spikes', title='Price Spike chart'):
 def detect_spikes_shift(df, column, window_size, SPIKES_THRESHOLD=2, present=False):
     spikes = []
     
-    # If not including the present, shift the column values down by one
+    # If not including the present, shift the column values down by 1
     if not present:
         shifted_column = df[column].shift(1)
     else:
@@ -191,7 +191,7 @@ def detect_spikes_shift(df, column, window_size, SPIKES_THRESHOLD=2, present=Fal
 
     # Detect spikes
     for actual_value, mean, sd in zip(df[column], moving_avg, std_dev):
-        if sd == 0:  # Avoid division by zero
+        if sd == 0:  
             spikes.append(0)
         else:
             spikes.append(int(abs(actual_value - mean) > SPIKES_THRESHOLD * sd))

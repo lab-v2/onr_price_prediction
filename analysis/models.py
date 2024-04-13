@@ -194,6 +194,43 @@ def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n):
 
     return bowpy_dataframe
 
+# Select models based on F1 threshold, and includes functionality to exclude models
+def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, exclude_models=None):
+    
+    # Read the base model predictions
+    bowpy_dataframe = pd.read_csv(base_model_file_path)
+    bowpy_dataframe.rename(columns={"Predicted": "pred", "True": "corr"}, inplace=True)
+    bowpy_dataframe['true_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 1 else 0, axis=1)
+    bowpy_dataframe['false_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 0 else 0, axis=1)
+
+    base_model_name = os.path.basename(base_model_file_path).replace("_predictions.csv", "")
+    mapped_base_model_name = reader.map_base_model_to_rule_name(base_model_name)
+    # print(mapped_base_model_name)
+
+    # Filtering rules and applying F1 threshold
+    rule_index = 0
+    excluded = 0
+    for model_file in os.listdir(rule_result_dir):
+        if model_file.endswith(".csv") and "Rule all" not in model_file and mapped_base_model_name in model_file:
+            model_details = model_file.split('Rule')[1].split('for')[0].strip()
+            # print(model_details)
+            model_predictions = pd.read_csv(os.path.join(rule_result_dir, model_file))
+            # print('1',len(model_predictions['Predicted']))
+            # print('2', len(bowpy_dataframe['pred']))
+            if len(model_predictions['Predicted']) == len(bowpy_dataframe['pred']):
+                f1_score = classification_report(model_predictions['True'], model_predictions['Predicted'], output_dict=True)['1']['f1-score']
+                print('f1', f1_score)
+                if any(excl in model_details for excl in exclude_models):
+                    excluded += 1
+                    print(f"Excluded model: {model_details}, F1 Score: {f1_score}")
+                    continue
+                if f1_score >= threshold:
+                    bowpy_dataframe[f"rule{rule_index}"] = model_predictions['Predicted']
+                    rule_index += 1
+
+    print (f'Excluded {excluded} rules')
+    return bowpy_dataframe
+
 # Function to parse model descriptor and return appropriate model architecture
 def get_model_from_descriptor(descriptor, input_shape):
     adam_optimizer = Adam(learning_rate=learning_rate)
