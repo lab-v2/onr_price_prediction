@@ -195,7 +195,7 @@ def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n):
     return bowpy_dataframe
 
 # Select models based on F1 threshold, and includes functionality to exclude models
-def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, exclude_models=[]):
+def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, exclude_models=None):
     
     # Read the base model predictions
     bowpy_dataframe = pd.read_csv(base_model_file_path)
@@ -232,7 +232,7 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
                     f1_filter += 1
             else:
                 scuffed_filter += 1
-    if rule_index == 0: return pd.DataFrame()
+
     print (f'Excluded {f1_filter} rules due to F1 filtering')
     print (f'Excluded {ablation_filter} rules due to model filtering')
     print (f'Excluded {scuffed_filter} rules due to problematic formatting')

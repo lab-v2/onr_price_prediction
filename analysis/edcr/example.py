@@ -24,6 +24,15 @@ def run_edcr():
     results = []
     for ep in epsilon:
         #result = PosNegRuleLearn(all_charts, epsilon)
+        result = ruleForPNCorrection(data, ep)
+        results.append([ep] + result)
+        print(f"ep:{ep}\n{result}")
+    df = pd.DataFrame(results, columns = ['epsilon'] + col )
+    df.to_csv( f"rule_for_PNcorrection.csv")
+
+    results = []
+    for ep in epsilon:
+        #result = PosNegRuleLearn(all_charts, epsilon)
         result = ruleForNPCorrection(data, ep)
         results.append([ep] + result)
         print(f"ep:{ep}\n{result}")
@@ -34,14 +43,5 @@ def run_edcr():
     if os.path.exists('Results.xlsx'):
         os.remove('Results.xlsx')
     df.to_excel('Results.xlsx', sheet_name='EDCR Results', index=False)
-
-    results = []
-    for ep in epsilon:
-        #result = PosNegRuleLearn(all_charts, epsilon)
-        result = ruleForPNCorrection(data, ep)
-        results.append([ep] + result)
-        print(f"ep:{ep}\n{result}")
-    df = pd.DataFrame(results, columns = ['epsilon'] + col )
-    df.to_csv( f"rule_for_PNcorrection.csv")
 
     return df
