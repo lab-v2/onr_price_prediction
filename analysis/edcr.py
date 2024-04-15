@@ -172,4 +172,55 @@ def apply_edcr(rules, y_test, pred_file_path):
     return output_dicts
 
 
+# Alternate version of function above where we dont filter and we dont produce ensembles
+def edcr_evaluation_method_v2(method, name, rule_pred, base_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path):
+    if method == 'correction':
+        y_pred, output_dict = evaluate_edcr(name, rule_pred, base_pred, y_test)
+    elif method == 'detection_correction':
+        # y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, y_test)
+        y_pred, output_dict = evaluate_edcr_detection(name, rule_pred, base_pred, rule_model_pred_conf, base_model_pred_conf, y_test)
+    else:
+        raise ValueError("Unknown method specified")
+
+    # Save the prediction and evaluation results
+    models.save_predictions_to_file(name, y_pred, y_test, f"{pred_file_path}_{method}")
+    return output_dict
+
+
+
+def apply_edcr_v2(rules, y_test, pred_file_path):
+    output_dicts = []
+
+    for base_idx, base_model in enumerate(rules):  # Loop through all models as potential base models
+        base_model_pred = base_model[0]
+        base_model_pred_conf = base_model[1]
+        base_model_name = base_model[2]
+        print(f"Base model: {base_model_name}")
+
+        for rule_idx, rule_model in enumerate(rules):
+            if rule_idx == base_idx:
+                continue  # Skip the rule application for the base model itself
+
+            rule_model_pred_conf = rule_model[1]
+            rule_model_name = rule_model[2]
+
+            for confident in [0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 0.95]:
+                name = f"Confident {confident} Rule {rule_model_name} for {base_model_name}"
+                try:
+                    # Determine rule-based predictions based on confidence threshold
+                    y_pred_rule_based = (rule_model_pred_conf > confident).astype(int)
+
+                    # Evaluate using correction rule
+                    output_dict_direct = edcr_evaluation_method_v2('correction', name, y_pred_rule_based, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path)
+                    output_dicts.append(output_dict_direct)
+
+                    # Evaluate using detection + correction rule
+                    output_dict_detection = edcr_evaluation_method_v2('detection_correction', name, y_pred_rule_based, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path)
+                    output_dicts.append(output_dict_detection)
+
+                except Exception as e:
+                    print(f"Failed to evaluate {name}: {e}")
+
+    return output_dicts
+
 

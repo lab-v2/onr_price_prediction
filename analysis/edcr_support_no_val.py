@@ -109,7 +109,7 @@ for target_COMMODITY in COMMODITYS:
     #X_test_price_mix, y_test_price_mix = data_processing.create_sequences(X_test_price_mix, y_test_price_mix, WINDOW_SIZE)
     #X_val_mix, y_val_mix = data_processing.create_sequences(X_val_mix, y_val_mix, WINDOW_SIZE)
 
-    keyword = 'shift'
+    keyword = 'shift_new'
 
     # Evaluate and create pre-trained model
     output_file_path = f'{target_COMMODITY}_{keyword}_{WINDOW_SIZE}/test/results_test.csv'

@@ -156,10 +156,11 @@ def npy_to_bowpy(base_model_file_path, base_dir, confidence_levels, algo):
 
     return bowpy_dataframe
 
-def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n):
-    """
-    Merges base model predictions with the corresponding rule results for specified confidence levels.
-    """
+def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n, exclude_models=None):
+    ablation_filter = 0
+    if exclude_models is None:
+        exclude_models = []
+
     # Read the base model predictions
     bowpy_dataframe = pd.read_csv(base_model_file_path)
     bowpy_dataframe.rename(columns={"Predicted": "pred", "True": "corr"}, inplace=True)
@@ -169,28 +170,31 @@ def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n):
     base_model_name = os.path.basename(base_model_file_path).replace("_predictions.csv", "")
     mapped_base_model_name = reader.map_base_model_to_rule_name(base_model_name)
 
-    # Iterate through the directory and add each matching rule's predictions as a new column
-    index = 0
-    for model_file in os.listdir(rule_result_dir):
-        if model_file.endswith(".csv") and not "Rule all" in model_file and mapped_base_model_name in model_file:
-            index += 1
-
+    # Collect f1 scores and rule model details
     rank = []
-    index = 0
     for model_file in os.listdir(rule_result_dir):
         if model_file.endswith(".csv") and not "Rule all" in model_file and mapped_base_model_name in model_file:
-            # print(model_file)
+            model_details = model_file.split('Rule')[1].split('for')[0].strip()
+            if any(excl in model_details for excl in exclude_models):
+                ablation_filter += 1
+                # print(f"Excluded model: {model_details}, F1 Score: {f1_score}")
+                continue
+
             model_predictions = pd.read_csv(os.path.join(rule_result_dir, model_file))
             if len(model_predictions['Predicted']) == len(bowpy_dataframe['pred']):
-                rank += [(model_file, model_predictions['Predicted'], classification_report(model_predictions['True'], model_predictions['Predicted'], output_dict=True)['1']['f1-score'])]
-                index += 1
+                f1_score = classification_report(model_predictions['True'], model_predictions['Predicted'], output_dict=True)['1']['f1-score']
+                rank.append((model_file, model_predictions['Predicted'], f1_score))
+
+    # Sort rules by F1 score and apply top N filtering
     sorted_rank = sorted(rank, key=lambda x: x[2], reverse=True)
-    
-    top_n = min(top_n, index)
+    top_n = min(top_n, len(sorted_rank))  # Ensure we do not exceed the number of available rules
+
+    # Add top N rules to the DataFrame
     for i in range(top_n):
-        model_file = sorted_rank[i][0]
-        model_predictions = sorted_rank[i][1]
+        model_file, model_predictions, _ = sorted_rank[i]
         bowpy_dataframe[f"rule{i}"] = model_predictions
+
+    print (f'Excluded {ablation_filter} rules due to model filtering')
 
     return bowpy_dataframe
 
@@ -496,7 +500,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
 
     # EDCR        
     if edcra:
-        edcr_results = edcr.apply_edcr(rules, y_test, pred_file_path)
+        edcr_results = edcr.apply_edcr_v2(rules, y_test, pred_file_path)
         output_dicts.extend(edcr_results)
       
     output_dicts = pd.DataFrame(output_dicts)

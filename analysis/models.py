@@ -390,6 +390,24 @@ def evaluate_dumb_model(y_test, model_type='non_spikes'):
     
     return y_pred, output_dict
 
+# Added for modularity
+def evaluate_model(model_type, params, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, saved_model_path, pred_file_path, confidence_path, val=True):
+    model_descriptor = f"{model_type}_{params}"
+    model_path = f'{saved_model_path}/{model_descriptor}.h5'
+    try:
+        if val:
+            y_pred, output_dict, y_pred_conf, model = models1.evaluate(model_type, params, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
+        else:
+            y_pred, output_dict, y_pred_conf, model = models2.evaluate(model_type, params, X_train, y_train, X_test, y_test, pretrain, model_path)
+        save_predictions_to_file(model_descriptor, y_pred, y_test, pred_file_path)
+        save_predictions_to_file(model_descriptor, y_pred_conf, y_test, confidence_path)
+        model.save(model_path)
+        print(f"{model_descriptor} evaluation successful:", output_dict)
+        return [y_pred, y_pred_conf, model_descriptor, output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']], output_dict
+    except Exception as e:
+        print(f"Failed to evaluate {model_descriptor}: {e}")
+        return None, None
+
 # Evaluate all models
 def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain, edcra=True, val=True):
     global auc_count
@@ -496,7 +514,7 @@ def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_pat
 
     # EDCR        
     if edcra:
-        edcr_results = edcr.apply_edcr(rules, y_test, pred_file_path)
+        edcr_results = edcr.apply_edcr_v2(rules, y_test, pred_file_path)
         output_dicts.extend(edcr_results)
       
     output_dicts = pd.DataFrame(output_dicts)
