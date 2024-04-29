@@ -1,0 +1,336 @@
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.82 & 0.65 & 0.73\\
+CNN  & 0.82 & 0.65 & 0.73\\
+CNN Attention & \textbf{0.94} & 0.19 & 0.32\\
+LSTM  & 0.25 & 0.01 & 0.02\\
+
+\hline
+CNN  (EDCR) & 0.85 (+3.0\%) & 0.78 (+19.61\%) & \textbf{0.81} (+11.63\%)\\
+CNN  (EDCR) & 0.85 (+3.0\%) & 0.78 (+19.61\%) & \textbf{0.81} (+11.63\%)\\
+CNN Attention (EDCR) & \textbf{0.94} (0.0\%) & 0.19 (0.0\%) & 0.32 (0.0\%)\\
+LSTM  (EDCR) & 0.51 (+103.17\%) & \textbf{0.82} (+6300.0\%) & 0.63 (+2472.55\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Cobalt. Using the Detection Correction algorithm. Filtering by Threshold}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.82 & 0.65 & \textbf{0.73}\\
+CNN  & 0.82 & 0.65 & \textbf{0.73}\\
+CNN Attention & \textbf{0.94} & 0.19 & 0.32\\
+LSTM  & 0.25 & 0.01 & 0.02\\
+
+\hline
+CNN  (EDCR) & 0.81 (-1.59\%) & 0.65 (0.0\%) & 0.72 (-0.71\%)\\
+CNN  (EDCR) & 0.81 (-1.59\%) & 0.65 (0.0\%) & 0.72 (-0.71\%)\\
+CNN Attention (EDCR) & \textbf{0.94} (0.0\%) & 0.19 (0.0\%) & 0.32 (0.0\%)\\
+LSTM  (EDCR) & 0.52 (+109.84\%) & \textbf{0.82} (+6300.0\%) & 0.64 (+2524.0\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Cobalt. Using the Correction algorithm. Filtering by Threshold}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.82 & 0.65 & 0.73\\
+CNN  & 0.82 & 0.65 & 0.73\\
+CNN Attention & \textbf{0.94} & 0.19 & 0.32\\
+LSTM  & 0.25 & 0.01 & 0.02\\
+
+\hline
+CNN  (EDCR) & 0.80 (-2.15\%) & \textbf{0.85} (+29.41\%) & \textbf{0.83} (+13.24\%)\\
+CNN  (EDCR) & 0.80 (-2.15\%) & \textbf{0.85} (+29.41\%) & \textbf{0.83} (+13.24\%)\\
+CNN Attention (EDCR) & \textbf{0.94} (0.0\%) & 0.19 (0.0\%) & 0.32 (0.0\%)\\
+LSTM  (EDCR) & 0.69 (+177.65\%) & 0.76 (+5800.0\%) & 0.72 (+2868.1\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Cobalt. Using the Detection Correction algorithm. Filtering by Top F1}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.82 & 0.65 & 0.73\\
+CNN  & 0.82 & 0.65 & 0.73\\
+CNN Attention & \textbf{0.94} & 0.19 & 0.32\\
+LSTM  & 0.25 & 0.01 & 0.02\\
+
+\hline
+CNN  (EDCR) & 0.83 (+1.31\%) & 0.77 (+17.65\%) & \textbf{0.80} (+9.8\%)\\
+CNN  (EDCR) & 0.83 (+1.31\%) & 0.77 (+17.65\%) & \textbf{0.80} (+9.8\%)\\
+CNN Attention (EDCR) & \textbf{0.94} (0.0\%) & 0.19 (0.0\%) & 0.32 (0.0\%)\\
+LSTM  (EDCR) & 0.65 (+161.22\%) & \textbf{0.82} (+6300.0\%) & 0.73 (+2881.82\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Cobalt. Using the Correction algorithm. Filtering by Top F1}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.62 & 0.65 & 0.63\\
+CNN  & 0.55 & 0.67 & 0.61\\
+CNN Attention & 0.80 & 0.48 & 0.60\\
+CNN Attention & 0.17 & 0.01 & 0.03\\
+
+\hline
+CNN  (EDCR) & 0.63 (+1.91\%) & 0.71 (+8.89\%) & 0.67 (+5.19\%)\\
+CNN  (EDCR) & 0.49 (-12.22\%) & \textbf{0.78} (+17.39\%) & 0.60 (-0.87\%)\\
+CNN Attention (EDCR) & \textbf{0.84} (+3.96\%) & 0.59 (+24.24\%) & \textbf{0.69} (+15.82\%)\\
+CNN Attention (EDCR) & 0.42 (+154.4\%) & 0.77 (+5200.0\%) & 0.55 (+1948.97\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Copper. Using the Detection Correction algorithm. Filtering by Threshold}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.62 & 0.65 & 0.63\\
+CNN  & 0.55 & 0.67 & 0.61\\
+CNN Attention & \textbf{0.80} & 0.48 & 0.60\\
+CNN Attention & 0.17 & 0.01 & 0.03\\
+
+\hline
+CNN  (EDCR) & 0.61 (-1.35\%) & 0.65 (0.0\%) & 0.63 (-0.7\%)\\
+CNN  (EDCR) & 0.56 (+1.73\%) & 0.77 (+15.22\%) & \textbf{0.65} (+7.44\%)\\
+CNN Attention (EDCR) & 0.76 (-5.47\%) & 0.51 (+6.06\%) & 0.61 (+1.45\%)\\
+CNN Attention (EDCR) & 0.37 (+119.43\%) & \textbf{0.93} (+6300.0\%) & 0.52 (+1867.21\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Copper. Using the Correction algorithm. Filtering by Threshold}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.62 & 0.65 & 0.63\\
+CNN  & 0.55 & 0.67 & 0.61\\
+CNN Attention & 0.80 & 0.48 & 0.60\\
+CNN Attention & 0.17 & 0.01 & 0.03\\
+
+\hline
+CNN  (EDCR) & 0.63 (+1.91\%) & 0.71 (+8.89\%) & 0.67 (+5.19\%)\\
+CNN  (EDCR) & 0.49 (-12.22\%) & \textbf{0.78} (+17.39\%) & 0.60 (-0.87\%)\\
+CNN Attention (EDCR) & \textbf{0.84} (+3.96\%) & 0.59 (+24.24\%) & \textbf{0.69} (+15.82\%)\\
+CNN Attention (EDCR) & 0.50 (+197.09\%) & 0.74 (+5000.0\%) & 0.59 (+2123.84\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Copper. Using the Detection Correction algorithm. Filtering by Top F1}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.62 & 0.65 & 0.63\\
+CNN  & 0.55 & 0.67 & 0.61\\
+CNN Attention & \textbf{0.80} & 0.48 & 0.60\\
+CNN Attention & 0.17 & 0.01 & 0.03\\
+
+\hline
+CNN  (EDCR) & 0.63 (+1.66\%) & 0.68 (+4.44\%) & \textbf{0.65} (+2.99\%)\\
+CNN  (EDCR) & 0.56 (+1.73\%) & 0.77 (+15.22\%) & \textbf{0.65} (+7.44\%)\\
+CNN Attention (EDCR) & \textbf{0.80} (0.0\%) & 0.48 (0.0\%) & 0.60 (0.0\%)\\
+CNN Attention (EDCR) & 0.46 (+175.0\%) & \textbf{0.80} (+5400.0\%) & 0.58 (+2082.54\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Copper. Using the Correction algorithm. Filtering by Top F1}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.52 & 0.65 & 0.58\\
+RNN  & 0.20 & 0.99 & 0.33\\
+CNN  & \textbf{0.86} & 0.17 & 0.28\\
+LSTM  & 0.71 & 0.07 & 0.13\\
+
+\hline
+CNN  (EDCR) & 0.53 (+3.19\%) & 0.79 (+21.74\%) & \textbf{0.64} (+10.67\%)\\
+RNN  (EDCR) & 0.19 (-0.52\%) & \textbf{1.00} (+1.43\%) & 0.33 (-0.2\%)\\
+CNN  (EDCR) & \textbf{0.86} (0.0\%) & 0.17 (+0.0\%) & 0.28 (0.0\%)\\
+LSTM  (EDCR) & 0.71 (0.0\%) & 0.07 (+0.0\%) & 0.13 (0.0\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Magnesium. Using the Detection Correction algorithm. Filtering by Threshold}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.52 & 0.65 & 0.58\\
+RNN  & 0.20 & 0.99 & 0.33\\
+CNN  & \textbf{0.86} & 0.17 & 0.28\\
+LSTM  & 0.71 & 0.07 & 0.13\\
+
+\hline
+CNN  (EDCR) & 0.53 (+2.66\%) & 0.73 (+13.04\%) & \textbf{0.62} (+7.02\%)\\
+RNN  (EDCR) & 0.20 (+0.87\%) & \textbf{1.00} (+1.43\%) & 0.33 (+0.96\%)\\
+CNN  (EDCR) & \textbf{0.86} (0.0\%) & 0.17 (+0.0\%) & 0.28 (0.0\%)\\
+LSTM  (EDCR) & 0.71 (0.0\%) & 0.07 (+0.0\%) & 0.13 (0.0\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Magnesium. Using the Correction algorithm. Filtering by Threshold}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.52 & 0.65 & 0.58\\
+RNN  & 0.20 & 0.99 & 0.33\\
+CNN  & \textbf{0.86} & 0.17 & 0.28\\
+LSTM  & 0.71 & 0.07 & 0.13\\
+
+\hline
+CNN  (EDCR) & 0.53 (+3.19\%) & 0.79 (+21.74\%) & \textbf{0.64} (+10.67\%)\\
+RNN  (EDCR) & 0.20 (+0.87\%) & \textbf{1.00} (+1.43\%) & 0.33 (+0.96\%)\\
+CNN  (EDCR) & \textbf{0.86} (0.0\%) & 0.17 (+0.0\%) & 0.28 (0.0\%)\\
+LSTM  (EDCR) & 0.77 (+7.69\%) & 0.28 (+300.0\%) & 0.41 (+221.65\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Magnesium. Using the Detection Correction algorithm. Filtering by Top F1}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN  & 0.52 & 0.65 & 0.58\\
+RNN  & 0.20 & 0.99 & 0.33\\
+CNN  & \textbf{0.86} & 0.17 & 0.28\\
+LSTM  & 0.71 & 0.07 & 0.13\\
+
+\hline
+CNN  (EDCR) & 0.53 (+2.66\%) & 0.73 (+13.04\%) & \textbf{0.62} (+7.02\%)\\
+RNN  (EDCR) & 0.20 (+1.15\%) & \textbf{1.00} (+1.43\%) & 0.33 (+1.19\%)\\
+CNN  (EDCR) & \textbf{0.86} (0.0\%) & 0.17 (+0.0\%) & 0.28 (0.0\%)\\
+LSTM  (EDCR) & 0.74 (+2.94\%) & 0.35 (+400.0\%) & 0.48 (+271.43\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Magnesium. Using the Correction algorithm. Filtering by Top F1}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN Attention & 0.59 & 0.48 & 0.53\\
+CNN  & 0.37 & 0.57 & 0.45\\
+CNN Attention & \textbf{0.66} & 0.38 & 0.48\\
+LSTM  & 0.25 & 0.02 & 0.03\\
+
+\hline
+CNN Attention (EDCR) & 0.61 (+2.59\%) & 0.56 (+17.24\%) & \textbf{0.58} (+10.23\%)\\
+CNN  (EDCR) & 0.37 (-0.12\%) & \textbf{0.74} (+28.57\%) & 0.49 (+9.5\%)\\
+CNN Attention (EDCR) & \textbf{0.66} (+0.21\%) & 0.44 (+17.39\%) & 0.53 (+10.49\%)\\
+LSTM  (EDCR) & 0.41 (+64.95\%) & 0.66 (+3900.0\%) & 0.51 (+1545.57\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Nickel. Using the Detection Correction algorithm. Filtering by Threshold}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN Attention & 0.59 & 0.48 & 0.53\\
+CNN  & 0.37 & 0.57 & 0.45\\
+CNN Attention & \textbf{0.66} & 0.38 & 0.48\\
+LSTM  & 0.25 & 0.02 & 0.03\\
+
+\hline
+CNN Attention (EDCR) & 0.58 (-2.52\%) & 0.49 (+3.45\%) & 0.53 (+0.7\%)\\
+CNN  (EDCR) & 0.39 (+3.66\%) & \textbf{0.72} (+25.71\%) & 0.50 (+11.35\%)\\
+CNN Attention (EDCR) & \textbf{0.66} (+0.3\%) & 0.48 (+26.09\%) & \textbf{0.55} (+15.28\%)\\
+LSTM  (EDCR) & 0.42 (+67.74\%) & 0.64 (+3800.0\%) & 0.51 (+1546.1\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Nickel. Using the Correction algorithm. Filtering by Threshold}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN Attention & 0.59 & 0.48 & 0.53\\
+CNN  & 0.37 & 0.57 & 0.45\\
+CNN Attention & 0.66 & 0.38 & 0.48\\
+LSTM  & 0.25 & 0.02 & 0.03\\
+
+\hline
+CNN Attention (EDCR) & 0.60 (+1.38\%) & 0.59 (+24.14\%) & \textbf{0.60} (+12.85\%)\\
+CNN  (EDCR) & 0.40 (+6.42\%) & \textbf{0.69} (+20.0\%) & 0.50 (+11.38\%)\\
+CNN Attention (EDCR) & \textbf{0.68} (+2.82\%) & 0.41 (+8.7\%) & 0.51 (+6.48\%)\\
+LSTM  (EDCR) & 0.41 (+64.95\%) & 0.66 (+3900.0\%) & 0.51 (+1545.57\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Nickel. Using the Detection Correction algorithm. Filtering by Top F1}
+\end{table}
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Model & Precision & Recall & F1\\
+\hline
+CNN Attention & 0.59 & 0.48 & 0.53\\
+CNN  & 0.37 & 0.57 & 0.45\\
+CNN Attention & \textbf{0.66} & 0.38 & 0.48\\
+LSTM  & 0.25 & 0.02 & 0.03\\
+
+\hline
+CNN Attention (EDCR) & 0.56 (-4.96\%) & 0.59 (+24.14\%) & \textbf{0.58} (+9.24\%)\\
+CNN  (EDCR) & 0.37 (+0.42\%) & \textbf{0.70} (+22.86\%) & 0.49 (+8.2\%)\\
+CNN Attention (EDCR) & \textbf{0.66} (0.0\%) & 0.38 (0.0\%) & 0.48 (0.0\%)\\
+LSTM  (EDCR) & 0.42 (+67.74\%) & 0.64 (+3800.0\%) & 0.51 (+1546.1\%)\\
+
+\hline
+\end{tabular}
+\caption{Model Evaluation Results for Nickel. Using the Correction algorithm. Filtering by Top F1}
+\end{table}

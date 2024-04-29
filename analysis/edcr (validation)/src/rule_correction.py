@@ -75,7 +75,7 @@ def ruleForNPCorrection(chart, epsilon):
     chart = np.array(chart)
     train, test = train_test_split(chart, test_size=0.2, shuffle=False)
 
-    NCi = GreedyNegRuleSelect(epsilon, train)
+    NCi = GreedyNegRuleSelect(epsilon, chart)
     negi_count = 0
     posi_count = 0
 
@@ -90,7 +90,7 @@ def ruleForNPCorrection(chart, epsilon):
                 predict_result[ct] = 0
 
     CCi = []
-    CCi = DetUSMPosRuleSelect(train)
+    CCi = DetUSMPosRuleSelect(chart)
     tem_cond = 0
     rec_true = []
     rec_pred = []

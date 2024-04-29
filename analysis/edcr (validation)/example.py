@@ -78,7 +78,7 @@ def model_select(csv_filepath):
     if filtered_df.empty:
         print("No models meet the criteria.")
         return []
-
+    
     # Identify models based on the criteria
     highest_f1 = filtered_df.loc[filtered_df['F1 (1)'].idxmax()]
     highest_recall = filtered_df.loc[filtered_df['Recall (1)'].idxmax()]
