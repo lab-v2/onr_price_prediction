@@ -11,7 +11,8 @@ def run_edcr():
         data = np.load(f, allow_pickle=True)
 
     # results = []
-    epsilon = [0.001 * i for i in range(1, 100, 1)]
+    # epsilon = [0.001 * i for i in range(1, 100, 1)]
+    epsilon = [0.001 * i for i in range(5, 300, 1)]
     # for ep in epsilon:
     #     #result = PosNegRuleLearn(all_charts, epsilon)
     #     result = ruleForNegativeCorrection(data, ep)
@@ -78,6 +79,9 @@ def model_select(csv_filepath):
     if filtered_df.empty:
         print("No models meet the criteria.")
         return []
+    
+    def filter_by_precision_recall_diff(sub_df, threshold=0.6):
+        return sub_df[(sub_df['Precision (1)'] - sub_df['Recall (1)']).abs() <= threshold]
 
     # Identify models based on the criteria
     highest_f1 = filtered_df.loc[filtered_df['F1 (1)'].idxmax()]
@@ -109,6 +113,52 @@ def model_select(csv_filepath):
         print(f"{key}: {value['metrics']} at model - {value['model']}")
 
     return models
+
+# def model_select(csv_filepath):
+#     df = pd.read_csv(csv_filepath, nrows=32)
+
+#     # Remove rows where any of the precision or recall for 0 or 1 is 0 or 1
+#     filtered_df = df[(df[['Precision (0)', 'Recall (0)', 'Precision (1)', 'Recall (1)']] != 0).all(axis=1) &
+#                      (df[['Precision (0)', 'Recall (0)', 'Precision (1)', 'Recall (1)']] != 1).all(axis=1)]
+
+#     if filtered_df.empty:
+#         print("No models meet the criteria.")
+#         return []
+
+#     # Filter by precision-recall difference
+#     filtered_df = filtered_df[(filtered_df['Precision (1)'] - filtered_df['Recall (1)']).abs() <= 0.5]
+    
+#     # Initialize a dictionary to store model data and a set to track used models
+#     models = {}
+#     used_models = set()
+
+#     # Define metric priorities and criteria
+#     metric_criteria = [
+#         ('F1 (1)', False, 'Highest F1'),
+#         ('Recall (1)', False, 'Highest Recall'),
+#         ('Precision (1)', False, 'Highest Precision'),
+#         ('F1 (1)', True, 'Lowest F1')
+#     ]
+
+#     for metric, ascending, label in metric_criteria:
+#         # Sort and filter for the best or worst model based on the metric criteria
+#         best_model = filtered_df.sort_values(by=metric, ascending=ascending).drop(index=used_models).iloc[0] if not filtered_df.empty else None
+        
+#         if best_model is not None:
+#             model_id = best_model.name  # Assuming the index is the model ID
+#             models[label] = {
+#                 'model': format_model_name(best_model),
+#                 'metrics': best_model[['Precision (1)', 'Recall (1)', 'F1 (1)']].to_dict()
+#             }
+#             used_models.add(model_id)
+#         else:
+#             print(f"No suitable model found for {label} after precision-recall filtering.")
+
+#     # Print the selected metric values for verification
+#     for key, value in models.items():
+#         print(f"{key}: {value['metrics']} at model - {value['model']}")
+
+#     return models
 
 
 # calculate metrics
