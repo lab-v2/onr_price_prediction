@@ -67,7 +67,7 @@ def DetUSMPosRuleSelect(chart):
     if new_pre < pi:
         cci = []
     cci = [c[1] for c in cci]
-    print(f"cci:{cci}, new_pre:{new_pre}, pre:{pi}")
+    # print(f"cci:{cci}, new_pre:{new_pre}, pre:{pi}")
     return cci
 
 def GreedyNegRuleSelect(epsilon, chart):
@@ -81,7 +81,7 @@ def GreedyNegRuleSelect(epsilon, chart):
     ri = tpi * 1.0 / each_sum[1]
     ni = each_sum[0]
     quantity = epsilon * ni * pi / ri
-    print(f"quantity:{quantity}")
+    # print(f"quantity:{quantity}")
 
     best_combins = []
     NCi = []
@@ -115,7 +115,7 @@ def GreedyNegRuleSelect(epsilon, chart):
             if negi_score < quantity:
                 tmp_NCn.append(c)
         NCn = tmp_NCn
-    print(f"NCi:{NCi}")
+    # print(f"NCi:{NCi}")
     return NCi
 
     for r in range(1,len_rules + 1):
@@ -136,7 +136,7 @@ def GreedyNegRuleSelect(epsilon, chart):
                     max_score[1] = negi_score
                     max_score[2] = posi_score
                     max_combi = cond
-        print(f"r:{r}, max_score:{max_score[0]}, negi:{max_score[1]}, posi:{max_score[2]}, max_combi:{max_combi}")
+        # print(f"r:{r}, max_score:{max_score[0]}, negi:{max_score[1]}, posi:{max_score[2]}, max_combi:{max_combi}")
         if max_combi:
             best_combins.append(max_combi)
     return best_combins

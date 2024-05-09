@@ -11,8 +11,8 @@ def run_edcr():
         data = np.load(f, allow_pickle=True)
 
     # results = []
-    # epsilon = [0.001 * i for i in range(1, 100, 1)]
-    epsilon = [0.001 * i for i in range(5, 300, 1)]
+    epsilon = [0.001 * i for i in range(1, 100, 1)]
+    # epsilon = [0.001 * i for i in range(5, 300, 1)]
     # for ep in epsilon:
     #     #result = PosNegRuleLearn(all_charts, epsilon)
     #     result = ruleForNegativeCorrection(data, ep)

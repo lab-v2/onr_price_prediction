@@ -156,6 +156,15 @@ def npy_to_bowpy(base_model_file_path, base_dir, confidence_levels, algo):
 
     return bowpy_dataframe
 
+def should_exclude(filename, exclude_models):
+    try:
+        model_type = filename.split('Rule')[1].strip().split('_')[0]
+        # print(f'File: {filename}, Model: {model_type}, Exclude: {exclude_models}')
+    except IndexError:
+        return False
+    
+    return model_type in exclude_models
+
 def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n, exclude_models=None):
     ablation_filter = 0
     if exclude_models is None:
@@ -174,10 +183,9 @@ def npy_to_top_n_f1_bowpy(base_model_file_path, rule_result_dir, top_n, exclude_
     rank = []
     for model_file in os.listdir(rule_result_dir):
         if model_file.endswith(".csv") and not "Rule all" in model_file and mapped_base_model_name in model_file:
-            model_details = model_file.split('Rule')[1].split('for')[0].strip()
-            if any(excl in model_details for excl in exclude_models):
+            if should_exclude(model_file, exclude_models):
+                print(f'Excluded: {model_file} due to {exclude_models} exclusion')
                 ablation_filter += 1
-                # print(f"Excluded model: {model_details}, F1 Score: {f1_score}")
                 continue
 
             model_predictions = pd.read_csv(os.path.join(rule_result_dir, model_file))
@@ -218,17 +226,16 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
     scuffed_filter = 0
     for model_file in os.listdir(rule_result_dir):
         if model_file.endswith(".csv") and "Rule all" not in model_file and mapped_base_model_name in model_file:
-            model_details = model_file.split('Rule')[1].split('for')[0].strip()
-            # print(model_details)
+            if should_exclude(model_file, exclude_models):
+                print(f'Excluded: {model_file}')
+                ablation_filter += 1
+                continue
+
             model_predictions = pd.read_csv(os.path.join(rule_result_dir, model_file))
-            # print('1',len(model_predictions['Predicted']))
-            # print('2', len(bowpy_dataframe['pred']))
+
             if len(model_predictions['Predicted']) == len(bowpy_dataframe['pred']):
                 f1_score = classification_report(model_predictions['True'], model_predictions['Predicted'], output_dict=True)['1']['f1-score']
-                if any(excl in model_details for excl in exclude_models):
-                    ablation_filter += 1
-                    # print(f"Excluded model: {model_details}, F1 Score: {f1_score}")
-                    continue
+
                 if f1_score >= threshold:
                     bowpy_dataframe[f"rule{rule_index}"] = model_predictions['Predicted']
                     rule_index += 1
