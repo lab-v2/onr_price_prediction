@@ -16,6 +16,7 @@ def calculate_confidence(y_pred, y_test, class_of_interest=1):
     confidence = true_positives / predicted_positives if predicted_positives > 0 else 0
     return confidence
 
+# Flip base model's prediction of '0' to '1', if the rule model's pred confidence exceeds threshold
 def evaluate_edcr(name, rule_model_pred, base_model_pred, y_test):
     print(rule_model_pred.shape,type(rule_model_pred))
     print(base_model_pred.shape,type(base_model_pred))
@@ -24,6 +25,7 @@ def evaluate_edcr(name, rule_model_pred, base_model_pred, y_test):
     output = models.make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), models.prior(y_test))
     return y_pred, output
 
+# A more nuanced version of "evaluate_edcr". The idea is that the base model's prediction of 0 may not always be worth flipping
 def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test):
     print(rule_model_pred.shape,type(rule_model_pred))
     print(base_model_pred.shape,type(base_model_pred))
@@ -48,6 +50,7 @@ def evaluate_edcr_detection(name, rule_model_pred, base_model_pred, rule_model_p
     y_pred = np.copy(base_model_pred)
     # y_pred[change_condition_0] = 1 - y_pred[change_condition_0] # flip prediction is rule says its wrong
 
+    # In our experiments we ended up using condition 1 only.
     y_pred[change_condition_1] = 1
     output = models.make_output_dict("EDCR", name, classification_report(y_test, y_pred, output_dict=True), models.prior(y_test))
 
@@ -210,11 +213,11 @@ def apply_edcr_v2(rules, y_test, pred_file_path):
                     # Determine rule-based predictions based on confidence threshold
                     y_pred_rule_based = (rule_model_pred_conf > confident).astype(int)
 
-                    # Evaluate using correction rule
+                    # Evaluate using correction algorithm
                     output_dict_direct = edcr_evaluation_method_v2('correction', name, y_pred_rule_based, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path)
                     output_dicts.append(output_dict_direct)
 
-                    # Evaluate using detection + correction rule
+                    # Evaluate using detection + correction algorithm
                     output_dict_detection = edcr_evaluation_method_v2('detection_correction', name, y_pred_rule_based, base_model_pred, rule_model_pred_conf, base_model_pred_conf, y_test, pred_file_path)
                     output_dicts.append(output_dict_detection)
 

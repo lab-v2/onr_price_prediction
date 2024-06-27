@@ -10,6 +10,7 @@ In the list:
     each value should be 0/1
 '''
 
+# CorrRuleLearn
 def DetUSMPosRuleSelect(chart):
     chart = np.array(chart)
     rule_indexs = [i for i in range(4, len(chart[0]))]
@@ -70,38 +71,42 @@ def DetUSMPosRuleSelect(chart):
     # print(f"cci:{cci}, new_pre:{new_pre}, pre:{pi}")
     return cci
 
+# DetRuleLearn
 def GreedyNegRuleSelect(epsilon, chart):
     chart = np.array(chart)
     rule_indexs = [i for i in range(4, len(chart[0]))]
     len_rules = len(rule_indexs)
     each_sum = np.sum(chart, axis = 0)
-    tpi = each_sum[2]
-    fpi = each_sum[3]
-    pi = tpi * 1.0 /(tpi + fpi)
-    ri = tpi * 1.0 / each_sum[1]
-    ni = each_sum[0]
-    quantity = epsilon * ni * pi / ri
+    tpi = each_sum[2]   # Sum of TP by the base model   leakage happening due to no test/train split?
+    fpi = each_sum[3]   # Sum of FP by the base model   leakage happening due to no test/train split?
+    pi = tpi * 1.0 /(tpi + fpi) # Precision of predictions    (How much of these positives are legit)  leakage happening due to no test/train split?
+    ri = tpi * 1.0 / each_sum[1]    # Ratio of ACTUAL TP    leakage happening due to no test/train split?
+    ni = each_sum[0]    # Sum of P by the base model
+    quantity = epsilon * ni * pi / ri   # A decision threshold? 
+    # print (f'QUANTITY: {quantity}')
     # print(f"quantity:{quantity}")
 
     best_combins = []
     NCi = []
     NCn = []
     for rule in rule_indexs:
-        negi_score = np.sum(chart[:,2] * chart[:,rule])
-        if negi_score < quantity:
-            NCn.append(rule)
+        neg = np.sum(chart[:,2] * chart[:,rule]) # A metric for seeing how each rule performs in terms of TP
+        # print(f'neg SCORE: {neg}')
+        if neg < quantity:
+            # print('YUPPPP')
+            NCn.append(rule)    # Flagged rule
 
-    while(NCn):
-        best_score = -1
+    while(NCn):             # Go through flagged rules
+        best_score = -1 
         best_index = -1
         for c in NCn:
             tem_cond = 0
             for cc in NCi:
                 tem_cond |= chart[:,cc]
             tem_cond |= chart[:,c]
-            posi_score = np.sum(chart[:,3] * tem_cond)
-            if best_score < posi_score:
-                best_score = posi_score
+            pos = np.sum(chart[:,3] * tem_cond) 
+            if best_score < pos:
+                best_score = pos
                 best_index = c
         NCi.append(best_index)
         NCn.remove(best_index)
@@ -111,8 +116,8 @@ def GreedyNegRuleSelect(epsilon, chart):
         tmp_NCn = []
         for c in NCn:
             tem = tem_cond | chart[:,c]
-            negi_score = np.sum(chart[:,2] * tem)
-            if negi_score < quantity:
+            neg = np.sum(chart[:,2] * tem)
+            if neg < quantity:
                 tmp_NCn.append(c)
         NCn = tmp_NCn
     # print(f"NCi:{NCi}")
@@ -127,14 +132,14 @@ def GreedyNegRuleSelect(epsilon, chart):
             for c in cond:
                 tmp_cond |= chart[:,c]
             negi = chart[:,2] * tmp_cond 
-            negi_score = np.sum(negi)
-            if negi_score < quantity:
+            neg = np.sum(negi)
+            if neg < quantity:
                 posi = chart[:,3] * tmp_cond
-                posi_score = np.sum(posi)
-                if posi_score - negi_score > max_score[0]:
-                    max_score[0] = posi_score - negi_score
-                    max_score[1] = negi_score
-                    max_score[2] = posi_score
+                pos = np.sum(posi)
+                if pos - neg > max_score[0]:
+                    max_score[0] = pos - neg
+                    max_score[1] = neg
+                    max_score[2] = pos
                     max_combi = cond
         # print(f"r:{r}, max_score:{max_score[0]}, negi:{max_score[1]}, posi:{max_score[2]}, max_combi:{max_combi}")
         if max_combi:

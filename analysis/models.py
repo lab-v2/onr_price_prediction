@@ -74,29 +74,6 @@ def prior(y_test):
     spike_percentage_in_test = (total_spikes_in_test / total_data_points_in_test) 
     return spike_percentage_in_test
 
-# def npy_to_bowpy(base_model_file_path, rule_result_dir, confidence_levels):
-#     """
-#     Merges base model predictions with the corresponding rule results for specified confidence levels.
-#     """
-#     # Read the base model predictions
-#     bowpy_dataframe = pd.read_csv(base_model_file_path)
-#     bowpy_dataframe.rename(columns={"Predicted": "pred", "True": "corr"}, inplace=True)
-#     bowpy_dataframe['true_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 1 else 0, axis=1)
-#     bowpy_dataframe['false_positive'] = bowpy_dataframe.apply(lambda x: 1 if x['pred'] == 1 and x['corr'] == 0 else 0, axis=1)
-
-#     base_model_name = os.path.basename(base_model_file_path).replace("_predictions.csv", "")
-#     mapped_base_model_name = reader.map_base_model_to_rule_name(base_model_name)
-
-#     # Iterate through the directory and add each matching rule's predictions as a new column
-#     for model_file in os.listdir(rule_result_dir):
-#         if model_file.endswith(".csv") and "Rule all" in model_file and mapped_base_model_name in model_file:
-#             column_name = reader.extract_rule_confidence(model_file, confidence_levels)
-#             if column_name:
-#                 model_predictions = pd.read_csv(os.path.join(rule_result_dir, model_file))
-#                 bowpy_dataframe[column_name] = model_predictions['Predicted']
-
-#     return bowpy_dataframe
-
 def npy_to_based_bowpy(base_model_file_path, rule_result_dir, confidence_levels):
     """
     Merges base model predictions with the corresponding rule results for specified confidence levels.
@@ -239,150 +216,65 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
     return bowpy_dataframe
 
 # Function to parse model descriptor and return appropriate model architecture
-def get_model_from_descriptor(descriptor, input_shape):
-    adam_optimizer = Adam(learning_rate=learning_rate)
-    # LSTM Model
-    if "LSTM" in descriptor:
-        num_layers = int(re.search(r"LSTM_(\d+)_layers", descriptor).group(1))
-        model = Sequential()
-        model.add(LSTM(num_layers, input_shape=input_shape, activation='relu'))
-        model.add(Dense(num_layers // 2, activation='relu'))
-        model.add(Dense(num_layers // 2, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
+# def get_model_from_descriptor(descriptor, input_shape):
+#     adam_optimizer = Adam(learning_rate=learning_rate)
+#     # LSTM Model
+#     if "LSTM" in descriptor:
+#         num_layers = int(re.search(r"LSTM_(\d+)_layers", descriptor).group(1))
+#         model = Sequential()
+#         model.add(LSTM(num_layers, input_shape=input_shape, activation='relu'))
+#         model.add(Dense(num_layers // 2, activation='relu'))
+#         model.add(Dense(num_layers // 2, activation='relu'))
+#         model.add(Dense(1, activation='sigmoid'))
     
-    # RNN Model
-    elif "RNN" in descriptor:
-        num_units = int(re.search(r"RNN_(\d+)_units", descriptor).group(1))
-        model = Sequential()
-        model.add(SimpleRNN(num_units, input_shape=input_shape, activation='relu'))
-        model.add(Dense(num_units // 2, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
+#     # RNN Model
+#     elif "RNN" in descriptor:
+#         num_units = int(re.search(r"RNN_(\d+)_units", descriptor).group(1))
+#         model = Sequential()
+#         model.add(SimpleRNN(num_units, input_shape=input_shape, activation='relu'))
+#         model.add(Dense(num_units // 2, activation='relu'))
+#         model.add(Dense(1, activation='sigmoid'))
     
-    # CNN Model
-    elif "CNN" in descriptor and "Attention" not in descriptor:
-        num_filters, kernel_size = map(int, re.search(r"CNN_(\d+)_filters_(\d+)_kernels", descriptor).groups())
-        model = Sequential()
-        model.add(Conv1D(filters=num_filters, kernel_size=kernel_size, activation='relu', input_shape=input_shape))
-        model.add(MaxPooling1D(pool_size=2))
-        model.add(Flatten())
-        model.add(Dense(num_filters // 2, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
+#     # CNN Model
+#     elif "CNN" in descriptor and "Attention" not in descriptor:
+#         num_filters, kernel_size = map(int, re.search(r"CNN_(\d+)_filters_(\d+)_kernels", descriptor).groups())
+#         model = Sequential()
+#         model.add(Conv1D(filters=num_filters, kernel_size=kernel_size, activation='relu', input_shape=input_shape))
+#         model.add(MaxPooling1D(pool_size=2))
+#         model.add(Flatten())
+#         model.add(Dense(num_filters // 2, activation='relu'))
+#         model.add(Dense(1, activation='sigmoid'))
 
-    # CNN with Attention Model
-    elif "CNN_Attention" in descriptor:
-        num_filters, kernel_size = map(int, re.search(r"CNN_Attention_(\d+)_filters_(\d+)_kernels", descriptor).groups())
-        model = create_acnn_model2(input_shape, 1, num_filters, kernel_size)
+#     # CNN with Attention Model
+#     elif "CNN_Attention" in descriptor:
+#         num_filters, kernel_size = map(int, re.search(r"CNN_Attention_(\d+)_filters_(\d+)_kernels", descriptor).groups())
+#         model = create_acnn_model2(input_shape, 1, num_filters, kernel_size)
     
-    else:
-        raise ValueError("Model descriptor not recognized.")
+#     else:
+#         raise ValueError("Model descriptor not recognized.")
 
-    model.compile(optimizer=adam_optimizer, loss='binary_crossentropy', metrics=['accuracy'])
-    return model
+#     model.compile(optimizer=adam_optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+#     return model
 
 # Retrain the best performing model
-def retrain_best_model(saved_model_path, X_train, y_train, X_val, y_val, X_test, y_test):
-    # Extract model descriptor from file path
-    descriptor = saved_model_path.split('/')[-1].replace('.h5', '')
-    input_shape = (X_train.shape[1], X_train.shape[2])
+# def retrain_best_model(saved_model_path, X_train, y_train, X_val, y_val, X_test, y_test):
+#     # Extract model descriptor from file path
+#     descriptor = saved_model_path.split('/')[-1].replace('.h5', '')
+#     input_shape = (X_train.shape[1], X_train.shape[2])
     
-    # Rebuild model based on the descriptor
-    model = get_model_from_descriptor(descriptor, input_shape)
+#     # Rebuild model based on the descriptor
+#     model = get_model_from_descriptor(descriptor, input_shape)
     
-    # Retrain the model
-    early_stopping = EarlyStopping(monitor='val_auc', patience=50, restore_best_weights=True)
-    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
+#     # Retrain the model
+#     early_stopping = EarlyStopping(monitor='val_auc', patience=50, restore_best_weights=True)
+#     model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=0, validation_data=(X_val, y_val), callbacks=[early_stopping])
     
-    # Evaluate the retrained model
-    y_pred = (model.predict(X_test) > 0.5).astype(int)
-    output = make_output_dict("Retrained Model", descriptor, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-    output_dicts = pd.DataFrame([output])
+#     # Evaluate the retrained model
+#     y_pred = (model.predict(X_test) > 0.5).astype(int)
+#     output = make_output_dict("Retrained Model", descriptor, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
+#     output_dicts = pd.DataFrame([output])
     
-    return output_dicts
-
-# Transformer
-def positional_encoding(length, d_model):
-    def get_angles(pos, i, d_model):
-        angle_rates = 1 / np.power(10000, (2 * (i//2)) / np.float32(d_model))
-        return pos * angle_rates
-
-    angle_rads = get_angles(np.arange(length)[:, np.newaxis], np.arange(d_model)[np.newaxis, :], d_model)
-    
-    # Apply sin to even indices in the array; 2i
-    angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
-    
-    # Apply cos to odd indices in the array; 2i+1
-    angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
-      
-    pos_encoding = angle_rads[np.newaxis, ...]
-    
-    return tf.cast(pos_encoding, dtype=tf.float32)
-
-def transformer_encoder(inputs, num_heads, ff_dim, dropout=0.1):
-    # Multi-head self-attention
-    attention_output = MultiHeadAttention(num_heads=num_heads, key_dim=inputs.shape[-1])(inputs, inputs)
-    attention_output = Dropout(dropout)(attention_output)
-    attention_output = LayerNormalization(epsilon=1e-6)(inputs + attention_output)
-
-    # Feed-forward layer
-    ff_output = Dense(ff_dim, activation="relu")(attention_output)
-    ff_output = Dense(inputs.shape[-1])(ff_output)
-    ff_output = Dropout(dropout)(ff_output)
-    return LayerNormalization(epsilon=1e-6)(attention_output + ff_output)
-
-
-def build_transformer(num_encoder_layers, length, d_model):
-    inputs = Input(shape=(length, d_model))
-    x = inputs + positional_encoding(length, d_model)
-
-    for _ in range(num_encoder_layers):
-        x = transformer_encoder(x, num_heads=4, ff_dim=128)
-
-    x = Flatten()(x)
-    x = Dense(64, activation="relu")(x)
-    x = Dropout(0.5)(x)
-    outputs = Dense(1, activation="sigmoid")(x)
-
-    model = tf.keras.Model(inputs=inputs, outputs=outputs)
-    model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
-    return model
-
-# Evaluate Transformer model
-def evaluate_transformer(num_encoder_layers,length,d_model,X_train, y_train, X_test, y_test):
-    model = build_transformer(num_encoder_layers, length, d_model)
-    model.fit(X_train, y_train, epochs=2000, batch_size=32, verbose=False)
-
-    y_pred = (model.predict(X_test) > 0.5).astype(int)
-    y_pred_ori = model.predict(X_test) 
-    
-    report = classification_report(y_test, y_pred, output_dict=True)
-    output = make_output_dict(f"Transformer", f"{num_encoder_layers} encoder layers", report)
-    return y_pred, output, y_pred_ori
-
-
-# #SVM Model
-# def evaluate_svm(param_grid, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path):
-#     X_train = X_train.reshape(X_train.shape[0], -1)
-#     y_train = y_train.reshape(y_train.shape[0], -1)
-
-#     # Initialize the SVM model
-#     model = SVC(probability=True)
-#     grid_search = GridSearchCV(model, param_grid, scoring='precision', cv=5, verbose=0)
-#     try:
-#         grid_search.fit(X_train, y_train)
-#     except Exception as e:
-#         print(f'flop: {e}')
-
-#     best_model = grid_search.best_estimator_
-
-    
-#     # Predictions with the best model
-#     y_pred_ori = best_model.predict_proba(X_test)[:, 1]
-#     y_pred = (y_pred_ori > 0.5).astype(int)
-
-#     best_params_str = ', '.join(f"{key}: {val}" for key, val in grid_search.best_params_.items())
-
-#     output = make_output_dict("SVM",best_params_str, classification_report(y_test, y_pred, output_dict=True), prior(y_test))
-#     return y_pred, output, y_pred_ori, output['Recall (1)'], best_model
+#     return output_dicts
 
 def evaluate_dumb_model(y_test, model_type='non_spikes'):
     y_pred = np.ones(len(y_test), dtype=int) if model_type == 'spikes' else np.zeros(len(y_test), dtype=int)
@@ -391,22 +283,22 @@ def evaluate_dumb_model(y_test, model_type='non_spikes'):
     return y_pred, output_dict
 
 # Added for modularity
-def evaluate_model(model_type, params, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, saved_model_path, pred_file_path, confidence_path, val=True):
-    model_descriptor = f"{model_type}_{params}"
-    model_path = f'{saved_model_path}/{model_descriptor}.h5'
-    try:
-        if val:
-            y_pred, output_dict, y_pred_conf, model = models1.evaluate(model_type, params, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
-        else:
-            y_pred, output_dict, y_pred_conf, model = models2.evaluate(model_type, params, X_train, y_train, X_test, y_test, pretrain, model_path)
-        save_predictions_to_file(model_descriptor, y_pred, y_test, pred_file_path)
-        save_predictions_to_file(model_descriptor, y_pred_conf, y_test, confidence_path)
-        model.save(model_path)
-        print(f"{model_descriptor} evaluation successful:", output_dict)
-        return [y_pred, y_pred_conf, model_descriptor, output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']], output_dict
-    except Exception as e:
-        print(f"Failed to evaluate {model_descriptor}: {e}")
-        return None, None
+# def evaluate_model(model_type, params, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, saved_model_path, pred_file_path, confidence_path, val=True):
+#     model_descriptor = f"{model_type}_{params}"
+#     model_path = f'{saved_model_path}/{model_descriptor}.h5'
+#     try:
+#         if val:
+#             y_pred, output_dict, y_pred_conf, model = models1.evaluate(model_type, params, X_train, y_train, X_val, y_val, X_test, y_test, pretrain, model_path)
+#         else:
+#             y_pred, output_dict, y_pred_conf, model = models2.evaluate(model_type, params, X_train, y_train, X_test, y_test, pretrain, model_path)
+#         save_predictions_to_file(model_descriptor, y_pred, y_test, pred_file_path)
+#         save_predictions_to_file(model_descriptor, y_pred_conf, y_test, confidence_path)
+#         model.save(model_path)
+#         print(f"{model_descriptor} evaluation successful:", output_dict)
+#         return [y_pred, y_pred_conf, model_descriptor, output_dict['Accuracy'], output_dict['F1 (1)'], output_dict['Recall (1)'], output_dict['Precision (1)']], output_dict
+#     except Exception as e:
+#         print(f"Failed to evaluate {model_descriptor}: {e}")
+#         return None, None
 
 # Evaluate all models
 def evaluate_all(X_train, y_train, X_val, y_val, X_test, y_test, output_file_path, pred_file_path, saved_model_path, pretrain, edcra=True, val=True):
