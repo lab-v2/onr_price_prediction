@@ -1,0 +1,4 @@
+- Base model predictions stored in `analysis/{metal}_shift_new_20/test/predictions/test/`
+- Rule filtering + EDCR performed in `analysis/edcr/edcr_rule_filtering.ipynb`
+- Final results stored in `analysis/edcr/out/top_f1/` and `analysis/edcr/out/threshold/` 
+- Ablation study in `analysis/edcr/ablation.ipynb`
