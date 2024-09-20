@@ -81,6 +81,8 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
     ablation_filter = 0
     f1_filter = 0
     scuffed_filter = 0
+    rules_used = 0
+
     for model_file in os.listdir(rule_result_dir):
         if model_file.endswith(".csv") and "Rule all" not in model_file and mapped_base_model_name in model_file:
             if should_exclude(model_file, exclude_models):
@@ -96,6 +98,7 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
                 if f1_score >= threshold:
                     bowpy_dataframe[f"rule{rule_index}"] = model_predictions['Predicted']
                     rule_index += 1
+                    rules_used += 1
                 else: 
                     f1_filter += 1
             else:
@@ -104,5 +107,6 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
     print (f'Excluded {f1_filter} rules due to F1 filtering')
     print (f'Excluded {ablation_filter} rules due to model filtering')
     print (f'Excluded {scuffed_filter} rules due to problematic formatting')
-    return bowpy_dataframe
+    print (f'Rules used: {rules_used} out of {rules_used+f1_filter+ablation_filter+scuffed_filter}')
+    return bowpy_dataframe, rules_used
 
