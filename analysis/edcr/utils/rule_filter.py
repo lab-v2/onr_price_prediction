@@ -82,9 +82,11 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
     f1_filter = 0
     scuffed_filter = 0
     rules_used = 0
+    rule_count = 0
 
     for model_file in os.listdir(rule_result_dir):
         if model_file.endswith(".csv") and "Rule all" not in model_file and mapped_base_model_name in model_file:
+            rule_count += 1
             if should_exclude(model_file, exclude_models):
                 print(f'Excluded: {model_file}')
                 ablation_filter += 1
@@ -107,6 +109,6 @@ def npy_to_threshold_f1_bowpy(base_model_file_path, rule_result_dir, threshold, 
     print (f'Excluded {f1_filter} rules due to F1 filtering')
     print (f'Excluded {ablation_filter} rules due to model filtering')
     print (f'Excluded {scuffed_filter} rules due to problematic formatting')
-    print (f'Rules used: {rules_used} out of {rules_used+f1_filter+ablation_filter+scuffed_filter}')
-    return bowpy_dataframe, rules_used
+    print (f'Rules used: {rules_used} out of {rule_count}')
+    return bowpy_dataframe, rules_used, rule_count
 
