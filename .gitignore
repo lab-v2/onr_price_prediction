@@ -8,7 +8,7 @@ __pycache__/
 /analysis/edcr/archive
 /analysis/edcr/data
 /analysis/edcr/evaluation_results(og)
-/volza/archive
+/datasets/archive
 /images
 
 # C extensions
