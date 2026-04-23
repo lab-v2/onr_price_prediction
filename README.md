@@ -1,5 +1,8 @@
 ### Data & Code Availability
 
+- **Metal Price Datasets**: 
+`datasets/{metal}/{metal}_prices.csv`
+
 - **Prediction Generation**  
   Notebook: `analysis/01_run_predictions.ipynb`  
   Output: Base model predictions stored in  
