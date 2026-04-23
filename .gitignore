@@ -6,6 +6,8 @@ __pycache__/
 /ais
 /analysis/archive
 /analysis/edcr/archive
+/analysis/edcr/data
+/analysis/edcr/evaluation_results(og)
 /volza/archive
 /images
 

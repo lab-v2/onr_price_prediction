@@ -40,10 +40,11 @@ def run_edcr():
     col = ['pre', 'recall', 'F1', 'NSC', 'PSC', 'NRC', 'PRC']
     #df = pd.DataFrame(results, columns = ['epsilon'] + col + ['acc', 'macro-F1', 'micro-F1'])
     df = pd.DataFrame(results, columns = ['epsilon'] + col )
-    df.to_csv( f"rule_for_NPcorrection.csv")
-    if os.path.exists('Results.xlsx'):
-        os.remove('Results.xlsx')
-    df.to_excel('Results.xlsx', sheet_name='EDCR Results', index=False)
+
+    output_path = 'edcr_output'
+    os.makedirs(output_path, exist_ok=True)
+    df.to_csv( f"{output_path}/rule_for_NPcorrection.csv")
+    df.to_excel(f'{output_path}/Results.xlsx', sheet_name='EDCR Results', index=False)
 
     return df
 

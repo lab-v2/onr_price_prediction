@@ -63,6 +63,7 @@ def convert_to_pound(df, quantity_col='Std. Quantity', unit_col='Std. Unit'):
 
 def get_data(volza_file_path, price_file_path, window_size,center):
     print("Building data...",)
+
     # Formatting the date and price for Volza data
     volza_pd = pd.read_csv(volza_file_path)
     volza_pd = volza_pd[
@@ -74,10 +75,6 @@ def get_data(volza_file_path, price_file_path, window_size,center):
     volza_pd["Date"] = pd.to_datetime(volza_pd["Date"], errors="raise", format="%Y-%m-%d")
     volza_pd = convert_to_kg(volza_pd)
 
-    # Preprocessing the AIS data
-    ais_popular_pd = pd.read_csv(AIS_POPULAR_FILE_PATH)
-    ais_popular_pd["Date"] = pd.to_datetime(ais_popular_pd["Date"])
-
     # Preprocessing the price data
     prices_pd = pd.read_csv(price_file_path)
     prices_pd["Date"] = prices_pd["Date"].apply(
@@ -86,8 +83,13 @@ def get_data(volza_file_path, price_file_path, window_size,center):
     prices_pd["Date"] = pd.to_datetime(prices_pd["Date"], errors="raise", format="%Y-%m-%d")
     
     #Check if Price column is a a string and convert to float
-    if prices_pd["Price"].dtype == "O":
-        prices_pd["Price"] = prices_pd["Price"].str.replace(",", "").astype(float)
+    prices_pd["Price"] = (
+        prices_pd["Price"]
+        .astype(str)
+        .str.replace(",", "", regex=False)
+        .astype(float)
+    )
+    
     prices_pd = prices_pd[["Date", "Price"]]
 
     # Aggregate volza data by day
@@ -99,31 +101,16 @@ def get_data(volza_file_path, price_file_path, window_size,center):
     avg_price_volza = volza_pd.groupby("Date")[UNIT_RATE_COLUMN].mean()
     date_wise_volza = date_wise_volza.join(avg_price_volza, how="left")
 
-    # Petroleum data prep
-    petrol_df = pd.read_csv(PETROL_FILE_PATH, delimiter=";", on_bad_lines="warn")
-    petrol_df["Date"] = pd.to_datetime(petrol_df["Date"])
-
-    # Split based on types of oil
-    brent_df = petrol_df[petrol_df["product-name"] == "UK Brent Crude Oil"]
-    wti_df = petrol_df[petrol_df["product-name"] == "WTI Crude Oil"]
-
-    brent_df.rename(columns={"Value": "Brent Oil Value"}, inplace=True)
-    wti_df.rename(columns={"Value": "WTI Oil Value"}, inplace=True)
-
     # Combining dataframes
     prices_pd = prices_pd.set_index("Date")
-    ais_popular_pd = ais_popular_pd.set_index("Date")
     
-    # date_wise_volza = date_wise_volza.join(ais_popular_pd, how="left").fillna(
-    #     method=FILL_METHOD
-    # )
-    aggregated_df = date_wise_volza.join(prices_pd, how="left").fillna(method=FILL_METHOD)
-    aggregated_df = aggregated_df.merge(
-        brent_df[[DATE_COLUMN, BRENT_OIL_COLUMN]], on="Date", how="left"
-    ).fillna(method=FILL_METHOD)
-    aggregated_df = aggregated_df.merge(
-        wti_df[[DATE_COLUMN, WTI_OIL_COLUMN]], on="Date", how="left"
-    ).fillna(method=FILL_METHOD)
+    # aggregated_df = date_wise_volza.join(prices_pd, how="left").fillna(method=FILL_METHOD)
+    aggregated_df = date_wise_volza.join(prices_pd, how="left")
+
+    if FILL_METHOD == "ffill":
+        aggregated_df = aggregated_df.ffill()
+    elif FILL_METHOD == "bfill":
+        aggregated_df = aggregated_df.bfill()
 
     # Clean up before passing to Arima
     initial_row_count = aggregated_df.shape[0]
@@ -155,15 +142,5 @@ def get_data(volza_file_path, price_file_path, window_size,center):
     test_df['ARIMA_Residuals'] = test_residuals
 
     aggregated_df = pd.concat([train_df, test_df])
-
-    # Add Isolation Forest spikes column
-    # aggregated_df['spikes_if'] = utils.detect_spikes_if(aggregated_df, ['Price'], contamination=0.05)
-
-    # Add rolling mean spikes column
-    # aggregated_df["spikes"] = utils.detect_spikes(aggregated_df, "Price", window_size=window_size, center=center)
-    # aggregated_df["spikes"] = utils.detect_spikes(aggregated_df, "Price")
-
-    # aggregated_df["spikes"] = utils.detect_spikes_iqr(aggregated_df, "Price")
-
     
     return aggregated_df

@@ -26,7 +26,7 @@ DEST_COUNTRY_COLUMN = 'Country of Destination'
 TARGET_COLUMN = ['Price']
 
 PETROL_FILE_PATH = '../volza/petroleum/petrol_crude_oil_spot_price.csv'
-AIS_POPULAR_FILE_PATH = f'../ais/ais_ml_features.csv' 
+AIS_POPULAR_FILE_PATH = f'../datasets/ais_ml_features.csv' 
 
 SPIKES_THRESHOLD = 2
 BIN_COUNT = 10
