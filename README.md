@@ -11,5 +11,8 @@
   `analysis/edcr/evaluation_results/top_f1/` and  
   `analysis/edcr/evaluation_results/threshold/`
 
-- **Ablation Study**  
+- **Ablation Study (Figure 1)**  
   Notebook: `analysis/edcr/04_ablation.ipynb`  
+
+- **Model Evaluation Results (Table 2 & 3)**  
+  Notebook: `analysis/edcr/05_model_evaluation_latex.ipynb`  
